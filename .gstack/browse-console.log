@@ -1,0 +1,2 @@
+[2026-07-24T01:09:33.353Z] [warning] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+[2026-07-24T01:09:33.696Z] [error] Failed to load resource: the server responded with a status of 404 (File not found)
