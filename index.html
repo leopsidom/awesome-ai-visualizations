@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Awesome AI Visualizations — Three.js scenes</title>
+    <meta
+      name="description"
+      content="A small gallery of generative Three.js / WebGL scenes — a wheeling night sky and a bioluminescent deep-sea drift."
+    />
+
+    <style>
+      :root {
+        --ink: #dfe7ff;
+        --dim: #7c8bad;
+        --faint: #4a5878;
+        --bg: #02030a;
+        --card: #070a16;
+        --line: rgba(120, 150, 220, 0.14);
+        --line-strong: rgba(150, 180, 255, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font: 400 14px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        letter-spacing: 0.03em;
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* layered cosmic glow + sparse starfield, pure CSS, no assets */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background:
+          radial-gradient(900px 600px at 12% -8%, rgba(80, 110, 220, 0.16), transparent 60%),
+          radial-gradient(800px 620px at 100% 110%, rgba(40, 190, 190, 0.12), transparent 60%),
+          radial-gradient(600px 500px at 80% 0%, rgba(255, 200, 140, 0.06), transparent 55%);
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-image:
+          radial-gradient(1px 1px at 20% 30%, rgba(223, 231, 255, 0.9), transparent),
+          radial-gradient(1px 1px at 70% 20%, rgba(223, 231, 255, 0.7), transparent),
+          radial-gradient(1px 1px at 40% 70%, rgba(223, 231, 255, 0.6), transparent),
+          radial-gradient(1px 1px at 85% 60%, rgba(223, 231, 255, 0.8), transparent),
+          radial-gradient(1px 1px at 55% 45%, rgba(223, 231, 255, 0.5), transparent),
+          radial-gradient(1px 1px at 10% 85%, rgba(223, 231, 255, 0.7), transparent),
+          radial-gradient(1px 1px at 92% 88%, rgba(223, 231, 255, 0.55), transparent),
+          radial-gradient(1px 1px at 32% 12%, rgba(223, 231, 255, 0.5), transparent);
+        opacity: 0.5;
+        animation: twinkle 6s ease-in-out infinite;
+      }
+
+      @keyframes twinkle {
+        0%,
+        100% {
+          opacity: 0.35;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: clamp(48px, 9vw, 120px) clamp(20px, 5vw, 48px) 72px;
+      }
+
+      /* ---- header ---- */
+      header {
+        margin-bottom: clamp(40px, 7vw, 76px);
+      }
+
+      .kicker {
+        color: var(--faint);
+        font-size: 11px;
+        letter-spacing: 0.42em;
+        text-transform: uppercase;
+        margin: 0 0 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font: 300 clamp(30px, 6vw, 54px) / 1.05 ui-monospace, Menlo, monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-shadow: 0 0 34px rgba(159, 192, 255, 0.35);
+      }
+
+      .lede {
+        margin: 20px 0 0;
+        max-width: 60ch;
+        color: var(--dim);
+        font-size: 14px;
+      }
+
+      /* ---- grid ---- */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: clamp(20px, 3vw, 32px);
+      }
+
+      .card {
+        --accent: #9fc0ff;
+        --accent-soft: rgba(159, 192, 255, 0.18);
+        display: flex;
+        flex-direction: column;
+        text-decoration: none;
+        color: inherit;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        position: relative;
+        transition:
+          transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+          border-color 0.4s ease,
+          box-shadow 0.4s ease;
+      }
+
+      .card:hover,
+      .card:focus-visible {
+        transform: translateY(-6px);
+        border-color: var(--accent);
+        box-shadow:
+          0 22px 60px -24px rgba(0, 0, 0, 0.9),
+          0 0 0 1px var(--accent-soft),
+          0 0 44px -8px var(--accent-soft);
+        outline: none;
+      }
+
+      .thumb {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        background: #010207;
+      }
+
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .card:hover .thumb img,
+      .card:focus-visible .thumb img {
+        transform: scale(1.05);
+      }
+
+      /* accent wash + top gradient so the title area reads on any image */
+      .thumb::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(7, 10, 22, 0.85) 2%, transparent 38%);
+        pointer-events: none;
+      }
+
+      .badge {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        z-index: 2;
+        font-size: 10px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: rgba(2, 3, 10, 0.55);
+        border: 1px solid var(--accent-soft);
+        backdrop-filter: blur(6px);
+        padding: 5px 10px;
+        border-radius: 999px;
+      }
+
+      .body {
+        padding: 22px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex: 1;
+      }
+
+      .card h2 {
+        margin: 0;
+        font: 400 21px/1.1 ui-monospace, Menlo, monospace;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--dim);
+        font-size: 13px;
+        flex: 1;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 2px;
+      }
+
+      .tags span {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--faint);
+        border: 1px solid var(--line);
+        padding: 4px 9px;
+        border-radius: 6px;
+      }
+
+      .enter {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        color: var(--accent);
+        font-size: 11px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+      }
+
+      .enter .arrow {
+        transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .card:hover .enter .arrow,
+      .card:focus-visible .enter .arrow {
+        transform: translateX(6px);
+      }
+
+      /* ---- footer ---- */
+      footer {
+        margin-top: clamp(48px, 8vw, 84px);
+        padding-top: 28px;
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+        justify-content: space-between;
+      }
+
+      footer a {
+        color: var(--dim);
+        text-decoration: none;
+        border-bottom: 1px solid var(--line-strong);
+        padding-bottom: 1px;
+        transition: color 0.3s ease;
+      }
+
+      footer a:hover {
+        color: var(--ink);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="wrap">
+      <header>
+        <p class="kicker">Three.js &middot; WebGL &middot; Generative</p>
+        <h1>Awesome AI&nbsp;Visualizations</h1>
+        <p class="lede">
+          A small gallery of self-contained, procedurally generated Three.js scenes. Each runs
+          entirely in the browser &mdash; no build step, no server. Pick one and let it drift.
+        </p>
+      </header>
+
+      <section class="grid">
+        <!-- Meridian -->
+        <a
+          class="card"
+          href="./starlit-night-sky/"
+          style="--accent: #ffd9a0; --accent-soft: rgba(255, 217, 160, 0.2)"
+        >
+          <div class="thumb">
+            <span class="badge">Night sky</span>
+            <img
+              src="./starlit-night-sky/docs/preview.jpg"
+              alt="Meridian — a starfield wheeling above a silhouetted ridge"
+              loading="lazy"
+            />
+          </div>
+          <div class="body">
+            <h2>Meridian</h2>
+            <p>
+              A wheeling night sky &mdash; a starfield turning slowly around the celestial pole above
+              a silhouetted ridge, with the Milky Way, a phased moon, aurora curtains on the horizon,
+              and the odd meteor.
+            </p>
+            <div class="tags">
+              <span>Starfield</span>
+              <span>Milky Way</span>
+              <span>Aurora</span>
+              <span>Bloom</span>
+            </div>
+            <div class="enter">
+              <span>Enter scene</span>
+              <span class="arrow">&rarr;</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Abyssal Drift -->
+        <a
+          class="card"
+          href="./bioluminescent-jellyfish/"
+          style="--accent: #58e6d8; --accent-soft: rgba(88, 230, 216, 0.2)"
+        >
+          <div class="thumb">
+            <span class="badge">Deep sea</span>
+            <img
+              src="./bioluminescent-jellyfish/docs/preview.jpg"
+              alt="Abyssal Drift — bioluminescent jellyfish drifting over a glowing seafloor"
+              loading="lazy"
+            />
+          </div>
+          <div class="body">
+            <h2>Abyssal Drift</h2>
+            <p>
+              A bioluminescent deep-sea scene &mdash; a colony of pulsing jellyfish drifting through
+              a dark water column over a glowing seafloor, with a slow camera dolly on a closed path.
+            </p>
+            <div class="tags">
+              <span>Jellyfish</span>
+              <span>Bioluminescence</span>
+              <span>Kelp</span>
+              <span>Particles</span>
+            </div>
+            <div class="enter">
+              <span>Enter scene</span>
+              <span class="arrow">&rarr;</span>
+            </div>
+          </div>
+        </a>
+      </section>
+
+      <footer>
+        <span>Built with Three.js &middot; runs in any modern browser</span>
+        <a href="https://github.com/leopsidom/awesome-ai-visualizations">
+          github.com/leopsidom/awesome-ai-visualizations
+        </a>
+      </footer>
+    </main>
+  </body>
+</html>
