@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Ephemeris — a clockwork orrery</title>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+      :root {
+        --ink: #2b2114;
+        --dim: #6d5940;
+        --glow: #a06a12;
+        --paper: #d3c3a4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--paper);
+        overflow: hidden;
+        color: var(--ink);
+        font: 400 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        letter-spacing: 0.04em;
+      }
+
+      canvas {
+        display: block;
+      }
+
+      #ui {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+        padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+          max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+      }
+
+      #ui.hidden {
+        opacity: 0;
+      }
+
+      /* The scene runs bright at the top and deep umber at the bottom, so every
+         overlay glyph carries its own light halo instead of picking one ink. */
+      .title,
+      .legend,
+      .stat {
+        text-shadow:
+          0 0 12px rgba(255, 246, 228, 0.9),
+          0 0 3px rgba(255, 246, 228, 0.9);
+      }
+
+      .title {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+      }
+
+      .title h1 {
+        margin: 0;
+        font: 300 26px/1.1 ui-monospace, Menlo, monospace;
+        letter-spacing: 0.42em;
+        text-transform: uppercase;
+      }
+
+      .title p {
+        margin: 8px 0 0;
+        color: var(--dim);
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+      }
+
+      .legend {
+        position: absolute;
+        left: 24px;
+        bottom: 24px;
+        color: var(--dim);
+        font-size: 11px;
+      }
+
+      .legend b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .legend span {
+        display: inline-block;
+        min-width: 74px;
+      }
+
+      .stat {
+        position: absolute;
+        right: 24px;
+        bottom: 24px;
+        text-align: right;
+        color: var(--dim);
+        font-size: 11px;
+      }
+
+      .stat b {
+        color: var(--glow);
+        font-weight: 500;
+      }
+
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 14px;
+        justify-items: center;
+        background: var(--paper);
+        color: var(--dim);
+        font-size: 11px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        transition: opacity 0.9s ease;
+        z-index: 2;
+      }
+
+      #boot.gone {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #boot .pip {
+        width: 96px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--glow), transparent);
+        animation: sweep 1.6s ease-in-out infinite;
+      }
+
+      @keyframes sweep {
+        0%,
+        100% {
+          opacity: 0.2;
+          transform: scaleX(0.4);
+        }
+        50% {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .title h1 {
+          font-size: 18px;
+          letter-spacing: 0.3em;
+        }
+        .legend {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="ui">
+      <div class="title">
+        <h1>Ephemeris</h1>
+        <p>Clockwork orrery &mdash; brass &amp; walnut</p>
+      </div>
+
+      <div class="legend">
+        <div><span>space</span> <b>stop the movement</b></div>
+        <div><span>O</span> <b>free orbit</b></div>
+        <div><span>B</span> <b>bloom</b></div>
+        <div><span>G</span> <b>glass dome</b></div>
+        <div><span>R</span> <b>recut the movement</b></div>
+        <div><span>H</span> <b>hide overlay</b></div>
+      </div>
+
+      <div class="stat">
+        seed <b id="seed">&mdash;</b><br />
+        <span id="mode">running</span>
+      </div>
+    </div>
+
+    <div id="boot">
+      <div>winding</div>
+      <div class="pip"></div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
