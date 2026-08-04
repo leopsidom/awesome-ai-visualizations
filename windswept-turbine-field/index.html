@@ -23,6 +23,8 @@
         --paper: #fbf6ea;
         --paper-dim: rgba(251, 246, 234, 0.72);
         --glow: #ffd489;
+        /* The gallery's own background, so arriving here is not a step change. */
+        --night: #02030a;
         /* The splash colour, and the page behind the canvas. Matched to the mean
            tone of a settled frame so the hand-off to the scene is a dissolve
            rather than a bright card being pulled away from a dark landscape. */
@@ -37,7 +39,7 @@
       body {
         margin: 0;
         height: 100%;
-        background: var(--field);
+        background: var(--night);
         overflow: hidden;
         color: var(--ink);
         font: 400 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -143,6 +145,11 @@
         opacity: 0.72;
       }
 
+      /* The splash opens in the gallery's own near-black, so clicking a card is
+         not a cut — measured, that jump was luminance 20 to 136 in a single frame
+         — and then warms to the tone of a settled frame while the world is being
+         built. With the hand-off at the far end already matched, the whole load
+         is now one monotonic ramp from the gallery to the steppe. */
       #boot {
         position: fixed;
         inset: 0;
@@ -150,13 +157,21 @@
         place-content: center;
         gap: 14px;
         justify-items: center;
-        background: var(--field);
-        color: var(--ink);
+        background: var(--night);
+        color: var(--paper-dim);
         font-size: 11px;
         letter-spacing: 0.3em;
         text-transform: uppercase;
         transition: opacity 0.9s ease;
+        animation: dawn 0.85s ease-out 0.12s forwards;
         z-index: 2;
+      }
+
+      @keyframes dawn {
+        to {
+          background-color: var(--field);
+          color: var(--ink);
+        }
       }
 
       #boot.gone {
