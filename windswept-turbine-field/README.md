@@ -98,6 +98,11 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
 - **The crepuscular rays are a radial blur of what is already on screen**, thresholded above white
   and marched back toward the sun's projected position. Nothing about them is animated: a rotor
   blade crossing the sun cuts them because it cut the pixels they are built from.
+- **The overlay takes two inks, because it sits on two pictures.** The title is always against sky,
+  which measures around 160 in luminance through the whole camera cycle; the legend and the readout
+  are always against near-field grass, which measures around 65. Dark ink everywhere under a wide
+  halo meant the halo was doing all the separating, and a glyph read through its own glow is what
+  soft type looks like.
 - `prefers-reduced-motion` slows the whole simulation to 35% rather than freezing it.
 
 ### Three things that cost an afternoon
