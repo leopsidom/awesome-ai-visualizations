@@ -105,8 +105,16 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
   soft type looks like.
 - `prefers-reduced-motion` slows the whole simulation to 35% rather than freezing it.
 
-### Three things that cost an afternoon
+### Four things that cost an afternoon
 
+- **Never render above the device pixel ratio.** A floor of 1.5× on the renderer looked like free
+  anti-aliasing for the grass, and on a 1× display it is the difference between a scene and a strobe:
+  it makes the canvas backing store larger than its CSS box, the compositor has to resample the layer
+  every frame, and Chrome's Metal backend intermittently presents that layer black. Proved by reading
+  the canvas back in-page — the frames really were black, not mis-captured — and by the structural
+  difference against a sibling scene on the same machine, which sets `min(dpr, 2)` and never does it.
+  The anti-aliasing is now bought where it is safe: the *composer's* buffers run at 1.5× and the
+  output pass filters them down, so the canvas stays 1:1 with its box.
 - **`UnrealBloomPass` cannot run against a multisampled composer buffer.** Grass a pixel wide is
   exactly what MSAA is for, so the composer was handed a target with `samples: 4`; the frame came
   back flat grey, and black once another pass followed. Bisected by elimination — bloom alone on a

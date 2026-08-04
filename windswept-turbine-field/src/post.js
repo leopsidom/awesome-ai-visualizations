@@ -104,8 +104,27 @@ const GoldenHourShader = {
   `,
 };
 
+/**
+ * The resolution the composer works at, as a multiple of CSS pixels.
+ *
+ * The canvas backing store has to match its CSS box or the compositor resamples
+ * the layer every frame, which on Chrome's Metal backend intermittently presents
+ * a black canvas (see main.js). Nothing stops the *composer* from working at a
+ * higher resolution, though: its buffers are ordinary render targets, and the
+ * output pass filters them back down to the canvas. That is supersampling with
+ * none of the layer-size mismatch — which is what keeps 220 000 blades of grass
+ * from shimmering on a 1× display.
+ *
+ * It is a floor rather than a multiplier: a 2× display already supersamples four
+ * times over, and 2 × 1.5 would be nine times the CSS pixels for nothing.
+ */
+const MIN_COMPOSER_RATIO = 1.5;
+
+const composerRatio = (renderer) => Math.max(renderer.getPixelRatio(), MIN_COMPOSER_RATIO);
+
 export function createPost(renderer, scene, camera) {
   const composer = new EffectComposer(renderer);
+  composer.setPixelRatio(composerRatio(renderer));
   composer.addPass(new RenderPass(scene, camera));
 
   const bloom = new UnrealBloomPass(
@@ -161,6 +180,7 @@ export function createPost(renderer, scene, camera) {
       // pixels to every pass, bloom included. Calling `bloom.setSize` again here
       // — the obvious-looking thing to do — hands it CSS pixels instead, halving
       // its mip chain, and the composite comes back black.
+      composer.setPixelRatio(composerRatio(renderer));
       composer.setSize(width, height);
       grade.uniforms.uAspect.value = width / height;
     },
