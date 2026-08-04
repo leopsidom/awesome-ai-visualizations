@@ -19,7 +19,10 @@
         --ink: #2a2417;
         --dim: #6a5c42;
         --glow: #8a6a1c;
-        --field: #cdbd94;
+        /* The splash colour, and the page behind the canvas. Matched to the mean
+           tone of a settled frame so the hand-off to the scene is a dissolve
+           rather than a bright card being pulled away from a dark landscape. */
+        --field: #8d887f;
       }
 
       * {
@@ -136,7 +139,7 @@
         gap: 14px;
         justify-items: center;
         background: var(--field);
-        color: var(--dim);
+        color: var(--ink);
         font-size: 11px;
         letter-spacing: 0.3em;
         text-transform: uppercase;

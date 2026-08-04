@@ -100,7 +100,7 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
   blade crossing the sun cuts them because it cut the pixels they are built from.
 - `prefers-reduced-motion` slows the whole simulation to 35% rather than freezing it.
 
-### Two things that cost an afternoon
+### Three things that cost an afternoon
 
 - **`UnrealBloomPass` cannot run against a multisampled composer buffer.** Grass a pixel wide is
   exactly what MSAA is for, so the composer was handed a target with `samples: 4`; the frame came
@@ -111,6 +111,13 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
 - **Do not call `bloom.setSize()` after `composer.setSize()`.** The composer takes CSS pixels and
   already forwards drawing-buffer pixels to every pass; calling the pass again with CSS pixels halves
   its mip chain and the composite comes back black. It looks like defensive tidiness and it is a bug.
+- **The splash screen has to outlast the first frame, and it has to be the right colour.** Dropping
+  it after one rendered frame flashes: the class change and the canvas swap are composited
+  independently, so the fade can start a beat ahead of the picture it is uncovering, and what shows
+  through the gap is the clear colour. Three things together fix it — `compileAsync` so frame one is
+  a frame rather than twenty shader links, three frames on screen before the fade is allowed to
+  start, and a splash colour matched to the mean tone of a settled frame so the hand-off is a
+  dissolve rather than a bright card pulled away from a dark landscape.
 
 ### Skills referenced
 
@@ -133,3 +140,7 @@ Runs in Chrome at 1486×783, holding ~93 fps against a 120 Hz display with 220 0
 ~1.8 M triangles a frame. All six keys were exercised. `renderer.info.memory` holds at 11 geometries
 and 18 textures across eighteen consecutive recuts, and the program cache settles at 23 rather than
 growing, so the disposal path doesn't leak.
+
+The load path was measured frame by frame: the splash holds for about 1.3 s while the world is built
+and the programs are linked, then dissolves into a first frame of almost the same mean tone — 141 →
+152 → 159 across the hand-off, with no dark step in between.
