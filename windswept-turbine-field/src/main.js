@@ -25,15 +25,18 @@ import { makeRng, seedLabel, randomSeed } from "./rng.js";
 const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // The composer's buffers cannot be multisampled while bloom is in the chain
-// (see post.js), so the anti-aliasing budget is spent on resolution instead —
-// and a *floor* matters as much as the ceiling here. On an ordinary 1× display,
-// drawing 220 000 blades of grass at one device pixel each is a shimmering mess;
-// rendering at 1.5× and letting the browser downsample costs a bit over twice
-// the fragments and fixes it.
-const MIN_PIXEL_RATIO = 1.5;
+// (see post.js), so the anti-aliasing budget is spent on resolution instead.
+//
+// It is tempting to go further and put a *floor* under the ratio — on a 1×
+// display, 220 000 blades of grass at one device pixel each shimmer, and drawing
+// at 1.5× and letting the browser downsample cleans it up. Do not. Rendering
+// above the device ratio makes the canvas backing store larger than its CSS box,
+// so the compositor has to resample the layer every frame, and on Chrome's Metal
+// backend that path intermittently presents a black or half-drawn canvas — a
+// strobe. Match the device and let the shimmer be shimmer.
 const MAX_PIXEL_RATIO = 2;
 
-const pixelRatio = () => THREE.MathUtils.clamp(window.devicePixelRatio, MIN_PIXEL_RATIO, MAX_PIXEL_RATIO);
+const pixelRatio = () => Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO);
 
 // ---------------------------------------------------------------- renderer --
 
