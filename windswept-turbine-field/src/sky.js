@@ -84,6 +84,7 @@ export function createSky(rng, wind) {
     uCloudLit: { value: new THREE.Color().setHSL(0.095, 0.46, 0.84) },
     uCloudDark: { value: new THREE.Color().setHSL(0.62, 0.24, 0.46) },
     uCloudOpacity: { value: rng.range(0.66, 0.88) },
+    uGlow: { value: 1 },
   };
 
   // ------------------------------------------------------------------ dome --
@@ -106,6 +107,7 @@ export function createSky(rng, wind) {
       uniform vec3 uCloudLit;
       uniform vec3 uCloudDark;
       uniform float uCloudOpacity;
+      uniform float uGlow;
 
       varying vec3 vRay;
 
@@ -124,10 +126,15 @@ export function createSky(rng, wind) {
         vec3 horizon = mix(uHorizonCool, uHorizonWarm, pow(az, 2.2));
         vec3 color = mix(horizon, uZenith, pow(clamp(d.y, 0.0, 1.0), 0.62));
 
-        // Forward scattering: a broad halo, a tight one, then the disc.
+        // Forward scattering: three halos and then the disc. This carries the
+        // glow that a bloom pass used to add on top of the frame — see post.js
+        // for why there isn't one any more. Doing it here is both cheaper and
+        // more honest: the spread around a low sun is the atmosphere, and it
+        // belongs to the sky rather than to the lens.
         float sun = max(dot(d, uSunDir), 0.0);
-        color += uSunTint * pow(sun, 11.0) * 0.26;
-        color += uSunTint * pow(sun, 260.0) * 2.2;
+        color += uSunTint * pow(sun, 5.0) * 0.30 * uGlow;
+        color += uSunTint * pow(sun, 48.0) * 0.85 * uGlow;
+        color += uSunTint * pow(sun, 380.0) * 2.6 * uGlow;
         color += uSunTint * smoothstep(0.99988, 0.99997, sun) * 22.0;
 
         // The cloud sheet, read where this ray pierces the cloud plane. Rays
@@ -210,6 +217,11 @@ export function createSky(rng, wind) {
     hazeCool,
     azimuth,
     elevation,
+
+    /** The sun's halo, toggled with the rays in post.js. */
+    setGlow(on) {
+      uniforms.uGlow.value = on ? 1 : 0;
+    },
     /** Cloud cover as a percentage, for the readout. */
     cover: Math.round(THREE.MathUtils.clamp((0.72 - cover) * 210, 3, 96)),
 
