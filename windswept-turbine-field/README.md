@@ -28,7 +28,7 @@ Three.js r185 is pulled from unpkg via an import map — no build step, no `node
 | ------- | -------------------------------------------------------------------------- |
 | `space` | Still the air (freezes time; the camera stops with it)                      |
 | `O`     | Toggle free orbit (OrbitControls) vs. the automatic camera                  |
-| `B`     | Toggle the bloom pass                                                       |
+| `B`     | Toggle the sun's glow — its halo in the sky and its rays in the grade        |
 | `G`     | Get up a wind — cycles calm → breeze → fresh → gale                         |
 | `R`     | New weather — disposes the old steppe and cuts a new one                    |
 | `H`     | Hide the overlay                                                            |
@@ -50,7 +50,7 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
 | `src/turbines.js`  | Lofted blades, lathed nacelles, farm layout, yaw and rotor control, the power curve           |
 | `src/fence.js`     | The stock fence along the track — the near-field scale cue                                    |
 | `src/pollen.js`    | Seed heads riding the wind; one `Points` system, wrapped around the camera                    |
-| `src/post.js`      | `EffectComposer`: bloom → golden-hour grade (crepuscular rays, split tone, vignette, grain)    |
+| `src/post.js`      | `EffectComposer`: a golden-hour grade — crepuscular rays, split tone, vignette, grain          |
 | `src/glsl.js`      | Shared GLSL: value noise / fbm, and the cloud sheet both the sky and the ground read          |
 | `src/rng.js`       | Seeded PRNG (mulberry32)                                                                     |
 
@@ -105,25 +105,24 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
   soft type looks like.
 - `prefers-reduced-motion` slows the whole simulation to 35% rather than freezing it.
 
-### Four things that cost an afternoon
+### Three things that cost an afternoon
 
-- **Never render above the device pixel ratio.** A floor of 1.5× on the renderer looked like free
-  anti-aliasing for the grass, and on a 1× display it is the difference between a scene and a strobe:
-  it makes the canvas backing store larger than its CSS box, the compositor has to resample the layer
-  every frame, and Chrome's Metal backend intermittently presents that layer black. Proved by reading
-  the canvas back in-page — the frames really were black, not mis-captured — and by the structural
-  difference against a sibling scene on the same machine, which sets `min(dpr, 2)` and never does it.
-  The anti-aliasing is now bought where it is safe: the *composer's* buffers run at 1.5× and the
+- **`UnrealBloomPass` was making the scene strobe, and no setting of it helped.** Roughly one frame
+  in twelve came back black. It was proved to be a real render rather than a bad capture by wrapping
+  the render call and reading the canvas back in-page: 293 of 3605 frames black with the pass
+  enabled, **0 of 3617** with it disabled. The rate did not move when its threshold was raised past
+  every value in the frame, when its strength was zeroed, or when its radius was zeroed — so it was
+  never about the bright pixels, it was the pass. For its final composite it binds `readBuffer` as
+  the render target while `readBuffer.texture` is still bound as a sampler input, and ANGLE resolves
+  that feedback hazard by discarding the draw. A light scene gets away with it. This one, at 1.8 M
+  triangles a frame, does not. The glow moved into the sky shader, which is cheaper and is where a
+  halo around a low sun belongs anyway.
+- **Never render above the device pixel ratio either.** A floor of 1.5× on the renderer looked like
+  free anti-aliasing for the grass, but it makes the canvas backing store larger than its CSS box, so
+  the compositor resamples the layer every frame. That turned out *not* to be the strobe — the bloom
+  pass was — but it is still wasted work on a 1× display and worth not doing. The supersampling now
+  happens where it is free of layer-size constraints: the *composer's* buffers run at 1.5× and the
   output pass filters them down, so the canvas stays 1:1 with its box.
-- **`UnrealBloomPass` cannot run against a multisampled composer buffer.** Grass a pixel wide is
-  exactly what MSAA is for, so the composer was handed a target with `samples: 4`; the frame came
-  back flat grey, and black once another pass followed. Bisected by elimination — bloom alone on a
-  4× target is flat, the grade alone on the same target is correct, both are correct at zero samples.
-  The anti-aliasing budget goes on resolution instead, with a pixel-ratio *floor* of 1.5 so an
-  ordinary 1× display supersamples too.
-- **Do not call `bloom.setSize()` after `composer.setSize()`.** The composer takes CSS pixels and
-  already forwards drawing-buffer pixels to every pass; calling the pass again with CSS pixels halves
-  its mip chain and the composite comes back black. It looks like defensive tidiness and it is a bug.
 - **The splash screen has to outlast the first frame, and it has to be the right colour.** Dropping
   it after one rendered frame flashes: the class change and the canvas swap are composited
   independently, so the fade can start a beat ahead of the picture it is uncovering, and what shows
@@ -141,7 +140,7 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
 `ShaderMaterial`, `LineBasicMaterial`),
 `threejs-textures` (`CanvasTexture`, colour space for colour vs. data maps, wrapping, anisotropy),
 `threejs-lighting` (directional key + shadow-map tuning for a very low sun, `HemisphereLight`),
-`threejs-postprocessing` (`EffectComposer`, `UnrealBloomPass`, custom `ShaderPass`, `OutputPass`),
+`threejs-postprocessing` (`EffectComposer`, custom `ShaderPass`, `OutputPass`),
 `threejs-animation` (procedural motion from a physical field, frame-rate-independent damping),
 `threejs-shaders` (`ShaderMaterial` for the sky and the chaff, `onBeforeCompile` injections into the
 built-in materials, `customProgramCacheKey`, value noise, point sprites),

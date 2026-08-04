@@ -15,8 +15,7 @@ import { makeRng, seedLabel, randomSeed } from "./rng.js";
  * Lambert and PBR standard, per-instance colour), textures (procedural
  * CanvasTextures, colour space for colour vs. data maps, wrapping, anisotropy),
  * lighting (directional key with a wide shadow map, hemisphere fill),
- * postprocessing (EffectComposer with a multisampled buffer, bloom, a custom
- * ShaderPass, OutputPass), shaders (ShaderMaterial for sky and chaff, and
+ * postprocessing (EffectComposer, a custom ShaderPass, OutputPass), shaders (ShaderMaterial for sky and chaff, and
  * onBeforeCompile injections into the built-in materials), animation (procedural
  * motion from a physical field, frame-rate-independent damping), interaction
  * (OrbitControls, keys).
@@ -24,8 +23,8 @@ import { makeRng, seedLabel, randomSeed } from "./rng.js";
 
 const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// The composer's buffers cannot be multisampled while bloom is in the chain
-// (see post.js), so the anti-aliasing budget is spent on resolution instead.
+// The composer's buffers are not multisampled (see post.js), so the
+// anti-aliasing budget is spent on resolution instead.
 //
 // It is tempting to go further and put a *floor* under the ratio — on a 1×
 // display, 220 000 blades of grass at one device pixel each shimmer, and drawing
@@ -144,6 +143,13 @@ const POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "S
 
 let paused = false;
 let orbiting = false;
+let glow = true;
+
+/** The sun's halo lives in the sky shader and its rays in the grade; one key. */
+function applyGlow() {
+  world.sky.setGlow(glow);
+  post.setGlow(glow);
+}
 
 function refreshStatus() {
   ui.seed.textContent = seedLabel(seed);
@@ -166,6 +172,7 @@ function recut() {
   seed = randomSeed();
   world = createWorld(scene, makeRng(seed));
   rigStarted = false;
+  applyGlow();
 
   const url = new URL(location.href);
   url.searchParams.set("seed", seed.toString(36));
@@ -201,7 +208,8 @@ window.addEventListener("keydown", (event) => {
       break;
 
     case "KeyB":
-      post.toggleBloom();
+      glow = !glow;
+      applyGlow();
       break;
 
     case "KeyG":

@@ -1,22 +1,31 @@
 import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 /**
- * Screen-space finish: bloom, then a golden-hour grade, then output.
+ * Screen-space finish: a golden-hour grade, then output.
  *
- * The composer buffers are deliberately *not* multisampled, which took a while
- * to accept: a million and a half triangles of grass one pixel wide is exactly
- * the case MSAA exists for. `UnrealBloomPass` cannot run against one. Its final
- * composite samples `readBuffer.texture` while rendering into `readBuffer`
- * itself, and when that target is multisampled the read/resolve overlap comes
- * back as a flat grey frame — or, with another pass behind it, a black one.
- * Verified by elimination: bloom alone on a 4× target is flat, the grade alone
- * on the same target is correct, and both are correct with samples at zero. The
- * scene is supersampled by rendering at the full device pixel ratio instead.
+ * There is deliberately no bloom pass. `UnrealBloomPass` was in this chain and
+ * was making the scene strobe: roughly one frame in twelve came back black.
+ * Measured by reading the canvas back in-page — 293 of 3605 frames black with it
+ * enabled, 0 of 3617 with it disabled, and the rate did not move when its
+ * threshold was raised past every value in the frame, its strength was zeroed or
+ * its radius was zeroed. So it was not the bright pixels: it was the pass. It
+ * binds `readBuffer` as its render target for the final composite while
+ * `readBuffer.texture` is still bound as a sampler input, and ANGLE resolves that
+ * feedback hazard by discarding the draw. A lighter scene gets away with it; this
+ * one does not.
+ *
+ * The sun's glow moved into the sky shader instead, which is where it belongs —
+ * a halo around a low sun is atmospheric scattering, not a lens artifact.
+ *
+ * The composer buffers are not multisampled. That started as a workaround for
+ * the bloom pass and outlived it; with bloom gone the chain is a single
+ * full-screen shader, where MSAA on the target would buy nothing anyway. The
+ * anti-aliasing the grass needs is bought by supersampling instead — see
+ * MIN_COMPOSER_RATIO below.
  *
  * The passes run on linear HDR: the composer's buffers are half-float and
  * Three.js skips tone mapping when it draws into a render target, so everything
@@ -39,6 +48,7 @@ const GoldenHourShader = {
     uSunTint: { value: new THREE.Color(1, 0.8, 0.55) },
     uTime: { value: 0 },
     uAspect: { value: 1 },
+    uGlow: { value: 1 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -55,6 +65,7 @@ const GoldenHourShader = {
     uniform vec3 uSunTint;
     uniform float uTime;
     uniform float uAspect;
+    uniform float uGlow;
 
     varying vec2 vUv;
 
@@ -68,7 +79,7 @@ const GoldenHourShader = {
 
       // Crepuscular rays: march back toward the sun, keeping only what is
       // brighter than white, and let the decay do the falloff.
-      if (uSunPower > 0.001) {
+      if (uSunPower * uGlow > 0.001) {
         vec2 stride = (vUv - uSun) * (0.76 / float(${RAY_SAMPLES}));
         vec2 probe = vUv;
         float decay = 1.0;
@@ -82,7 +93,7 @@ const GoldenHourShader = {
           decay *= 0.935;
         }
 
-        color += rays * uSunTint * (0.046 * uSunPower);
+        color += rays * uSunTint * (0.046 * uSunPower * uGlow);
       }
 
       // Split tone: the shadows on a steppe at this hour are sky, and the sky
@@ -127,14 +138,6 @@ export function createPost(renderer, scene, camera) {
   composer.setPixelRatio(composerRatio(renderer));
   composer.addPass(new RenderPass(scene, camera));
 
-  const bloom = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.22, // strength
-    0.66, // radius
-    1.3, // threshold — above white, so only the sun and the hottest rims bloom
-  );
-  composer.addPass(bloom);
-
   const grade = new ShaderPass(GoldenHourShader);
   composer.addPass(grade);
 
@@ -145,7 +148,6 @@ export function createPost(renderer, scene, camera) {
 
   return {
     composer,
-    bloom,
 
     /** Track where the sun lands on screen, and how much of it is in shot. */
     aimSun(sunDirection, sunTint) {
@@ -176,18 +178,16 @@ export function createPost(renderer, scene, camera) {
     },
 
     setSize(width, height) {
-      // `composer.setSize` takes CSS pixels and already forwards drawing-buffer
-      // pixels to every pass, bloom included. Calling `bloom.setSize` again here
-      // — the obvious-looking thing to do — hands it CSS pixels instead, halving
-      // its mip chain, and the composite comes back black.
+      // `composer.setSize` takes CSS pixels and forwards drawing-buffer pixels to
+      // every pass itself; never call a pass's own setSize after it.
       composer.setPixelRatio(composerRatio(renderer));
       composer.setSize(width, height);
       grade.uniforms.uAspect.value = width / height;
     },
 
-    toggleBloom() {
-      bloom.enabled = !bloom.enabled;
-      return bloom.enabled;
+    /** Scales the crepuscular rays; paired with the sky's halo by main.js. */
+    setGlow(on) {
+      grade.uniforms.uGlow.value = on ? 1 : 0;
     },
 
     dispose() {
