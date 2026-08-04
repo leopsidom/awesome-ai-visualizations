@@ -40,6 +40,10 @@ const pixelRatio = () => THREE.MathUtils.clamp(window.devicePixelRatio, MIN_PIXE
 const renderer = new THREE.WebGLRenderer({ powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(pixelRatio());
+// The sky dome covers every pixel, so this is never seen in a finished frame —
+// it is what shows if one is ever presented half-drawn, and black is the one
+// colour that reads as a fault. Matched to the splash screen behind the canvas.
+renderer.setClearColor(0x8d887f, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
@@ -229,11 +233,22 @@ window.addEventListener("resize", onResize);
 
 // -------------------------------------------------------------------- loop --
 
+// Link every program in the scene before the first frame is asked for.
+// Otherwise frame one is not a frame, it is twenty shader links, and the boot
+// screen begins fading over a canvas that has nothing in it yet — which is a
+// flash of the clear colour between the splash and the steppe.
+await renderer.compileAsync(scene, camera).catch(() => {});
+
 const timer = new THREE.Timer();
 timer.setTimescale(REDUCED_MOTION ? 0.35 : 1);
 let elapsed = 0;
-let booted = false;
+let framesDrawn = 0;
 let readoutDue = 0;
+
+// Frames to get on screen before the splash is allowed to fade. One is not
+// enough: the class change and the canvas swap are composited independently, so
+// the fade can start a beat ahead of the picture it is uncovering.
+const BOOT_FRAMES = 3;
 
 renderer.setAnimationLoop(() => {
   // Clamp so a backgrounded tab does not resume with a huge time step — which
@@ -260,8 +275,8 @@ renderer.setAnimationLoop(() => {
     readoutDue = 0.2;
   }
 
-  if (!booted) {
-    booted = true;
+  framesDrawn++;
+  if (framesDrawn === BOOT_FRAMES) {
     ui.boot.classList.add("gone");
     setTimeout(() => ui.boot.remove(), 1200);
   }
