@@ -116,13 +116,15 @@ so `http://localhost:8777/windswept-turbine-field/?seed=a1` always cuts the same
 - **Do not call `bloom.setSize()` after `composer.setSize()`.** The composer takes CSS pixels and
   already forwards drawing-buffer pixels to every pass; calling the pass again with CSS pixels halves
   its mip chain and the composite comes back black. It looks like defensive tidiness and it is a bug.
-- **The splash screen has to outlast the first frame, and it has to be the right colour.** Dropping
-  it after one rendered frame flashes: the class change and the canvas swap are composited
-  independently, so the fade can start a beat ahead of the picture it is uncovering, and what shows
-  through the gap is the clear colour. Three things together fix it — `compileAsync` so frame one is
-  a frame rather than twenty shader links, three frames on screen before the fade is allowed to
-  start, and a splash colour matched to the mean tone of a settled frame so the hand-off is a
-  dissolve rather than a bright card pulled away from a dark landscape.
+- **The splash has two ends, and both of them can flash.** Dropping it after one rendered frame
+  flashes at the back: the class change and the canvas swap are composited independently, so the fade
+  can start a beat ahead of the picture it is uncovering, and what shows through the gap is the clear
+  colour. Fixed by `compileAsync` — so frame one is a frame rather than twenty shader links — plus
+  three frames on screen before the fade is allowed to start, and a splash colour matched to the mean
+  tone of a settled frame. That left the *front* end, which is the one you actually notice: arriving
+  from the gallery, a fixed-colour splash is a cut from luminance 20 to 136 in a single frame. So the
+  splash now opens in the gallery's own near-black and warms to the scene's tone while the world is
+  being built. Both ends are ramps; nothing in the load is a cut.
 
 ### Skills referenced
 
