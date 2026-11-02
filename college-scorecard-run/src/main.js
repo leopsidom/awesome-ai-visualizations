@@ -6,6 +6,7 @@ import { createRunner } from "./runner.js";
 import { createFx } from "./fx.js";
 import { makeQuestion, FACTS } from "./data.js";
 import { makeRng, seedLabel, randomSeed } from "./rng.js";
+import { createAudio } from "./audio.js";
 
 /**
  * Cohort — a lane-runner across a college quad at dusk, where every gate is a
@@ -53,7 +54,22 @@ stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 900);
 
-const runner = createRunner(scene);
+// Sound (src/audio.js). Every call is a no-op until the first key or tap
+// unlocks the AudioContext, and the game runs silently if files are missing.
+const audio = createAudio();
+const TICK = "sfx_lock_warning_loop";
+const WIND = "sfx_gown_wind_loop";
+const lanePan = (l) => (l < 0 ? 0 : l === 0 ? -0.6 : 0.6);
+let ticking = false;
+
+const runner = createRunner(scene, {
+  onStep: (foot, v) =>
+    audio.play("sfx_footstep_brick", {
+      pan: (foot ? 0.12 : -0.12) + runner.x * 0.05,
+      gain: 0.55 + 0.25 * Math.min(1, v / SPEED_MAX),
+      rate: 0.95 + Math.random() * 0.1,
+    }),
+});
 const fx = createFx(scene);
 
 // ----------------------------------------------------------------- overlay --
@@ -159,7 +175,9 @@ function shuffled(arr, r) {
   return a;
 }
 
-function showFact() {
+function showFact(sound = false) {
+  // A soft bell as the card fades in, held back so it never lands on the verdict.
+  if (sound) audio.play("sfx_fact_card", { delay: 0.9 });
   ui.fact.style.opacity = 0;
   const text = facts[factIdx % facts.length];
   factIdx++;
@@ -232,6 +250,11 @@ function newRun(fresh) {
   ui.titleCard.classList.remove("hidden");
   refreshStats();
   refreshMode();
+
+  setTick(null);
+  audio.stop(WIND);
+  audio.duck(false);
+  audio.setMusic("title", 1.5);
 }
 
 function start() {
@@ -240,6 +263,9 @@ function start() {
   state = "running";
   ui.titleCard.classList.add("hidden");
   refreshMode();
+
+  audio.play("sfx_matriculate");
+  audio.setMusic("run", 0.5); // a one-beat crossfade at 120 BPM
 }
 
 function togglePause() {
@@ -247,6 +273,22 @@ function togglePause() {
   else if (state === "paused") state = "running";
   else return;
   refreshMode();
+
+  const paused = state === "paused";
+  audio.play(paused ? "sfx_pause" : "sfx_resume");
+  audio.duck(paused);
+}
+
+/** The lock-warning tick: on inside 25 m of the lock line, faster and louder as it nears. */
+function setTick(dist) {
+  if (dist == null) {
+    if (ticking) audio.stop(TICK, 0.08);
+    ticking = false;
+    return;
+  }
+  const k = THREE.MathUtils.clamp(1 - dist / 25, 0, 1);
+  audio.loop(TICK, { rate: 1 + 0.6 * k, gain: 0.55 + 0.45 * k });
+  ticking = true;
 }
 
 function refreshMode() {
@@ -300,9 +342,12 @@ function setMeter(text, frac, cls) {
 /** Per frame: how far to the lock line for the gate being asked. */
 function updateMeter() {
   const g = shownGate;
-  if (!g) return;
-  if (g.locked) return; // showLock / resolve own the bar from here
+  if (!g || g.locked) {
+    setTick(null); // showLock / resolve own the bar from here
+    return;
+  }
   if (state !== "running") {
+    setTick(null);
     setMeter(state === "paused" ? "paused" : "pick a lane to start", 0, "");
     return;
   }
@@ -310,6 +355,7 @@ function updateMeter() {
   const picked = runner.chosen >= 0;
   const text = `${picked ? "" : "pick a lane · "}locks in ${Math.ceil(dist)} m`;
   setMeter(text, 1 - dist / meterStart, dist < 25 ? "soon" : "");
+  setTick(dist < 25 ? dist : null);
 }
 
 function showNext(g) {
@@ -336,6 +382,7 @@ function showNext(g) {
   hudPick(runner.chosen);
   meterStart = Math.max(1, runZ - g.lockZ);
   updateMeter();
+  if (state === "running") audio.play("sfx_question_appear");
 }
 
 function showLock(lane) {
@@ -343,6 +390,9 @@ function showLock(lane) {
   ui.hud.classList.add("locked");
   hudPick(lane);
   setMeter(lane < 0 ? "🔒 locked · no lane picked" : "🔒 locked · run it through", 1, "done");
+  setTick(null);
+  audio.play(lane < 0 ? "sfx_lock_undeclared" : "sfx_lock_commit", { pan: lanePan(lane) });
+  audio.play("sfx_columns_rise", { delay: 0.05 });
   // The numbers rise in the world now; show them in the bar as well.
   const q = shownGate?.question;
   if (q) {
@@ -354,6 +404,7 @@ function showLock(lane) {
 }
 
 function nudgeLocked() {
+  audio.play("sfx_lane_refused");
   ui.hudLock.classList.remove("nudge");
   void ui.hudLock.offsetWidth;
   ui.hudLock.classList.add("nudge");
@@ -378,6 +429,11 @@ function resolve(g, lane) {
     verdict = `<span class="verdict good">✓ Correct · +${pts}</span>`;
     fx.burst(new THREE.Vector3((lane === 0 ? -1 : 1) * LANE_X, 3, g.z), 90, -speed * 0.5);
     runner.cheer();
+    audio.play("sfx_correct");
+    audio.play("sfx_confetti_pop", { pan: lanePan(lane), delay: 0.04 });
+    audio.play("sfx_cap_toss", { delay: 0.08, gain: 0.8 });
+    // Every third in a row: the multiplier steps up, one semitone higher each level.
+    if (streak % 3 === 0) audio.play("sfx_multiplier_up", { rate: 2 ** ((mult - 2) / 12), delay: 0.45 });
     ui.score.classList.remove("bump");
     void ui.score.offsetWidth;
     ui.score.classList.add("bump");
@@ -389,6 +445,10 @@ function resolve(g, lane) {
         ? `<span class="verdict bad">✗ Undeclared, no lane picked</span>`
         : `<span class="verdict bad">✗ Not this time</span>`;
     runner.stumble();
+    audio.play(lane < 0 ? "sfx_undeclared" : "sfx_wrong");
+    audio.play("sfx_stumble", { delay: 0.05 });
+    audio.play("sfx_credit_lost", { delay: 0.15 });
+    if (lives === 1) audio.play("sfx_last_credit_warning", { delay: 0.6 });
     if (!REDUCED_MOTION) shake = 0.45;
     ui.flash.classList.add("on");
     setTimeout(() => ui.flash.classList.remove("on"), 60);
@@ -402,7 +462,7 @@ function resolve(g, lane) {
     `<b style="color:var(--ink)">${win.title}</b> ${win.label} vs ${lose.title} ${lose.label}` +
     `<br><span style="color:var(--faint)">${q.metric.sub}</span>`;
 
-  if (answered % 4 === 0) showFact();
+  if (answered % 4 === 0) showFact(true);
   refreshStats();
 
   if (lives <= 0) {
@@ -412,6 +472,7 @@ function resolve(g, lane) {
     endAt = elapsed + 1.4;
     graduated = true;
   }
+  if (endAt > 0) audio.fadeMusic(1.1); // clear the floor for the end stinger
 }
 
 function honour(acc) {
@@ -425,6 +486,12 @@ function finish() {
   state = "over";
   endAt = -1;
   refreshMode();
+
+  setTick(null);
+  audio.stop(WIND, 0.8);
+  audio.stinger(graduated ? "music_win_commencement" : "music_lose_withdrawn");
+  if (score > best && score > 0) audio.play("sfx_new_best", { delay: 1.5 });
+
   if (score > best) {
     best = score;
     localStorage.setItem(BEST_KEY, String(best));
@@ -443,9 +510,13 @@ function finish() {
   if (graduated) {
     const p = runner.root.position;
     for (let i = 0; i < 3; i++) {
-      setTimeout(() => fx.burst(new THREE.Vector3(p.x + (i - 1) * 3, 4, p.z - 6), 80, 0), i * 260);
+      setTimeout(() => {
+        fx.burst(new THREE.Vector3(p.x + (i - 1) * 3, 4, p.z - 6), 80, 0);
+        audio.play(`sfx_confetti_pop_0${1 + (i % 2)}`, { pan: (i - 1) * 0.5 });
+      }, i * 260);
     }
     runner.cheer();
+    audio.play("sfx_cap_toss", { delay: 0.1 });
   }
 }
 
@@ -459,13 +530,16 @@ function chooseLane(l) {
     nudgeLocked(); // committed until through the arch: say so
     return;
   }
+  const prev = runner.chosen;
   runner.setLane(l);
   hudPick(l);
+  if (l !== prev) audio.play("sfx_lane_swish", { pan: lanePan(l) });
 }
 
 window.addEventListener("keydown", (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   if (event.target instanceof HTMLSelectElement) return;
+  if (event.target instanceof HTMLInputElement && event.target.type === "range") return; // arrows move the slider
 
   switch (event.code) {
     case "ArrowLeft":
@@ -494,6 +568,9 @@ window.addEventListener("keydown", (event) => {
     case "KeyH":
       document.body.classList.toggle("collapsed");
       break;
+    case "KeyM":
+      audio.toggleMute();
+      break;
   }
 });
 
@@ -502,19 +579,48 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
   chooseLane(event.clientX - rect.left < rect.width / 2 ? 0 : 1);
 });
 
-$("startBtn").addEventListener("click", start);
+const click = () => audio.play("sfx_ui_click");
+$("startBtn").addEventListener("click", () => {
+  click();
+  start();
+});
 $("againBtn").addEventListener("click", () => {
+  click();
   newRun(true);
   start();
 });
 $("restartBtn").addEventListener("click", () => {
+  click();
   newRun(true);
   start();
 });
-ui.pauseBtn.addEventListener("click", togglePause);
+ui.pauseBtn.addEventListener("click", togglePause); // has its own pause / resume cue
+
+// ---- sound panel (side panel only, never over the scene)
+const muteBtn = $("muteBtn");
+const volIn = $("vol");
+const musicIn = $("musicVol");
+const audioStatus = $("audioStatus");
+function refreshSound(status) {
+  const on = audio.prefs.on;
+  muteBtn.textContent = on ? "Sound: on" : "Sound: off";
+  muteBtn.classList.toggle("off", !on);
+  audioStatus.textContent = status ?? audio.status;
+}
+volIn.value = Math.round(audio.prefs.vol * 100);
+musicIn.value = Math.round(audio.prefs.music * 100);
+muteBtn.addEventListener("click", () => {
+  audio.toggleMute();
+  click();
+});
+volIn.addEventListener("input", () => audio.setVolume(volIn.value / 100));
+musicIn.addEventListener("input", () => audio.setMusicVolume(musicIn.value / 100));
+volIn.addEventListener("change", click);
+audio.onStatus(refreshSound);
 
 // Settings rebuild the waiting run straight away; mid-run they apply next time.
 function onSettings() {
+  click();
   if (state === "title") newRun(false);
   else ui.mode.textContent = "settings apply to the next run";
 }
@@ -524,7 +630,9 @@ ui.tempo.addEventListener("change", onSettings);
 ui.topics.addEventListener("change", onSettings);
 
 document.addEventListener("visibilitychange", () => {
+  if (document.hidden) audio.suspend();
   if (document.hidden && state === "running") togglePause();
+  if (!document.hidden) audio.resume();
 });
 
 // ------------------------------------------------------------------ resize --
@@ -601,6 +709,7 @@ renderer.setAnimationLoop(() => {
       }
       if (g.locked && !g.passed && runZ <= g.z) {
         g.pass();
+        if (lockedLane >= 0) audio.play("sfx_veil_burst", { pan: lanePan(lockedLane) });
         resolve(g, lockedLane);
       }
     }
@@ -614,6 +723,16 @@ renderer.setAnimationLoop(() => {
       }
       return true;
     });
+
+    // Gown and wind follow the pace; the intense music layer comes in on the
+    // last credit, the final quarter of the run, or at high speed, with a lift
+    // while the lock tick is running. Both calls only act on a change.
+    if (endAt < 0) {
+      const v = speed / SPEED_MAX;
+      audio.loop(WIND, { gain: 0.3 + 0.7 * v, rate: 0.9 + 0.3 * v });
+      const tense = lives === 1 || answered >= total * 0.75 || speed >= 15;
+      audio.setIntensity(tense ? (ticking ? 1.4 : 1) : 0);
+    }
 
     if (endAt > 0 && elapsed >= endAt) finish();
   } else if (state === "title" && shownGate === null) {
@@ -641,6 +760,7 @@ renderer.setAnimationLoop(() => {
   framesDrawn++;
   if (framesDrawn === BOOT_FRAMES) {
     ui.boot.classList.add("gone");
+    audio.play("sfx_boot_whoosh"); // only heard if sound was already unlocked
     setTimeout(() => ui.boot.remove(), 1200);
   }
 });
@@ -655,4 +775,5 @@ window.addEventListener("pagehide", () => {
   runner.dispose();
   fx.dispose();
   renderer.dispose();
+  audio.dispose();
 });

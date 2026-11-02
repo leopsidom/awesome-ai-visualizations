@@ -8,7 +8,7 @@ import { LANE_X } from "./gates.js";
  * swings with them — and the lean into a lane change comes from the lateral
  * velocity, so it is never out of step with the actual move.
  */
-export function createRunner(scene) {
+export function createRunner(scene, { onStep = null } = {}) {
   const own = [];
   const keep = (x) => (own.push(x), x);
 
@@ -124,6 +124,7 @@ export function createRunner(scene) {
   let tasselVel = 0;
   let stumbleT = 1;
   let cheerT = 1;
+  let lastSign = 0; // sign of sin(phase); each flip is a foot landing
 
   return {
     root,
@@ -172,6 +173,11 @@ export function createRunner(scene) {
       phase += dt * (speed > 0 ? 2.2 + speed * 0.32 : 0);
       const s = Math.sin(phase);
       const stride = speed > 0 ? Math.min(1, speed / 14) : 0;
+
+      // Footfall: the bob bottoms out where sin(phase) crosses zero, twice a cycle.
+      const sign = s >= 0 ? 1 : -1;
+      if (speed > 0 && lastSign && sign !== lastSign && onStep) onStep(sign > 0 ? 1 : 0, speed);
+      lastSign = sign;
       body.position.y = Math.abs(s) * 0.16 * stride;
       legs[0].rotation.x = s * 0.9 * stride;
       legs[1].rotation.x = -s * 0.9 * stride;

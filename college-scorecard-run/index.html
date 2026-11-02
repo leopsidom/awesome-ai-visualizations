@@ -477,6 +477,32 @@
         accent-color: var(--gold);
       }
 
+      #muteBtn.off {
+        color: var(--faint);
+        border-style: dashed;
+      }
+
+      .astatus {
+        font-size: 10px;
+        color: var(--faint);
+        letter-spacing: 0.08em;
+      }
+
+      .slider {
+        display: grid;
+        grid-template-columns: 52px 1fr;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .slider input {
+        width: 100%;
+        accent-color: var(--gold);
+      }
+
       .keys {
         font-size: 11px;
         color: var(--dim);
@@ -795,12 +821,29 @@
           </div>
         </div>
 
+        <div class="block">
+          <p class="label">Sound</p>
+          <div class="row">
+            <button id="muteBtn" title="Toggle all sound (M)">Sound: on</button>
+            <span class="astatus" id="audioStatus">loading</span>
+          </div>
+          <label class="slider">
+            <span>Volume</span>
+            <input type="range" id="vol" min="0" max="100" value="80" />
+          </label>
+          <label class="slider">
+            <span>Music</span>
+            <input type="range" id="musicVol" min="0" max="100" value="70" />
+          </label>
+        </div>
+
         <div class="keys">
           <div><kbd>← / A</kbd> left arch</div>
           <div><kbd>→ / D</kbd> right arch</div>
           <div style="color: var(--faint)">lane is fixed after the gold ANSWER LOCKS line</div>
           <div><kbd>space / P</kbd> pause</div>
           <div><kbd>R</kbd> new run (new seed)</div>
+          <div><kbd>M</kbd> sound on / off</div>
           <div><kbd>H</kbd> hide this panel</div>
         </div>
 

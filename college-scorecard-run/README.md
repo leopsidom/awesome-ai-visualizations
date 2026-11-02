@@ -36,6 +36,7 @@ Three.js r185 is pulled from unpkg via an import map. There is no build step and
 | `space` / `P`         | Pause / resume (start, from the title or end screen)      |
 | `R`                   | New run with a new seed                                   |
 | `H`                   | Hide the side panel; the stage widens to fill the space   |
+| `M`                   | Sound on / off                                            |
 
 The **question bar** across the top of the stage repeats the current question in large type, with
 the two options under `◀ A` and `D ▶`. Its meter counts down the metres to the lock line, and once
@@ -49,6 +50,27 @@ The side panel also holds the run settings:
 - **Topics:** a checkbox for each question type.
 
 Every run can be replayed exactly: the seed is shown in the panel and written to the URL as `?seed=…`.
+
+## Sound
+
+Music, ambience and 32 effects live in `audio/{music,amb,sfx}/` (MP3, generated with ElevenLabs from
+the audio brief) and are played by `src/audio.js` on the plain Web Audio API.
+
+- **Music by state:** a 16-bar title loop on the title and end screens; a 64 s run loop during play,
+  with an intense layer started on the same sample that fades in on the last credit, in the final
+  quarter of the run, or above 15 m/s; a commencement fanfare or a soft "withdrawn" coda at the end,
+  crossfading back to the title loop. Pausing muffles the music (low-pass, −8 dB).
+- **Effects** follow the game events: lane swish (panned to the lane), a ticking clock inside 25 m of
+  the lock line that speeds up as it nears, the lock clack, columns rising, right / wrong cues,
+  confetti, cap toss, stumble, credit lost, last-credit heartbeat, multiplier up (one semitone higher
+  per level), fact card, footsteps tied to the run cycle, and a gown-and-wind loop that follows pace.
+- **Levels:** the files were not loudness-matched, so each one is measured on load and given a gain
+  that puts it at a per-sound target, following the mix order in the brief. A compressor on the
+  master bus catches stacked cues.
+- **Loops:** leading silence and MP3 padding are trimmed from the loop points.
+- **Controls:** the side panel's Sound block has an on/off button, a master volume and a music volume,
+  saved in `localStorage` (`cohort-audio`). Browsers only allow sound after a key press or tap, so
+  the first one turns it on. Missing files leave the game silent but playable.
 
 ## Rules
 
