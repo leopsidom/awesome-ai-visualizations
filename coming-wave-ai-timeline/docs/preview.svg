@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="ui-monospace, Menlo, Consolas, monospace">
+  <title>Groundswell: six coloured threads of AI history riding a rising wave, with a story card open</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#02030a"/>
+      <stop offset="1" stop-color="#0a1a33"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d7fb3" stop-opacity="0.6"/>
+      <stop offset="0.5" stop-color="#0d2f52"/>
+      <stop offset="1" stop-color="#07101f"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#02030a" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#02030a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="720" fill="url(#sky)"/>
+  <g fill="#a9c1ee" opacity="0.75">
+    <circle cx="90" cy="60" r="1.4"/><circle cx="210" cy="130" r="1"/><circle cx="330" cy="40" r="1.2"/>
+    <circle cx="470" cy="96" r="1"/><circle cx="560" cy="30" r="1.5"/><circle cx="700" cy="70" r="1"/>
+    <circle cx="820" cy="24" r="1.2"/><circle cx="930" cy="58" r="1"/><circle cx="150" cy="220" r="1"/>
+    <circle cx="400" cy="200" r="1.3"/><circle cx="640" cy="160" r="1"/><circle cx="60" cy="300" r="1.1"/>
+  </g>
+
+  <!-- the sea: a swell that builds to the right and rears up past today -->
+  <path d="M0 404 C300 396 560 374 760 332 C930 296 1080 222 1280 96 L1280 720 L0 720 Z" fill="url(#sea)"/>
+  <g fill="none" stroke="#4aa8ff" stroke-opacity="0.22">
+    <path d="M0 430 C300 424 560 404 760 366 C930 332 1080 262 1280 146"/>
+    <path d="M0 462 C300 458 560 442 760 408 C930 378 1080 314 1280 208"/>
+    <path d="M0 502 C300 500 560 488 760 460 C930 434 1080 380 1280 286"/>
+    <path d="M0 552 C300 552 560 544 760 522 C930 502 1080 460 1280 380"/>
+    <path d="M0 616 C300 618 560 614 760 600 C930 586 1080 558 1280 500"/>
+    <path d="M0 690 C300 694 560 694 760 688 C930 682 1080 668 1280 636"/>
+    <path d="M120 720 L610 380"/><path d="M360 720 L740 356"/><path d="M620 720 L880 318"/>
+    <path d="M900 720 L1010 270"/><path d="M1180 720 L1130 196"/>
+  </g>
+
+  <!-- year gates and the white "now" line -->
+  <g stroke="#9fb4d8" stroke-opacity="0.4" fill="#cddcf5" font-size="15" font-weight="600">
+    <path d="M402 630 L1082 630"/><text x="1098" y="635">2016</text>
+    <path d="M668 472 L1050 472"/><text x="1064" y="477" font-size="12">2018</text>
+    <path d="M858 360 L1028 360"/><text x="1040" y="364" font-size="10">2020</text>
+  </g>
+  <path d="M516 562 L1068 562" stroke="#fff" stroke-opacity="0.9" stroke-width="1.5"/>
+
+  <!-- six thread lanes, lit up to "now" and dim beyond it -->
+  <g fill="none" stroke-width="3" stroke-linecap="round">
+    <path d="M250 720 L1010 270" stroke="#f2e2b0" stroke-opacity="0.25"/><path d="M250 720 L516 562" stroke="#f2e2b0"/>
+    <path d="M420 720 L1010 270" stroke="#ffa94d" stroke-opacity="0.25"/><path d="M420 720 L626 562" stroke="#ffa94d"/>
+    <path d="M590 720 L1010 270" stroke="#4dd6ff" stroke-opacity="0.25"/><path d="M590 720 L737 562" stroke="#4dd6ff"/>
+    <path d="M760 720 L1010 270" stroke="#63e6a5" stroke-opacity="0.25"/><path d="M760 720 L848 562" stroke="#63e6a5"/>
+    <path d="M930 720 L1010 270" stroke="#ff6b81" stroke-opacity="0.25"/><path d="M930 720 L958 562" stroke="#ff6b81"/>
+    <path d="M1100 720 L1010 270" stroke="#b693ff" stroke-opacity="0.25"/><path d="M1100 720 L1068 562" stroke="#b693ff"/>
+  </g>
+
+  <!-- markers: spheres for minor events; a gem, ring and beam for the major one -->
+  <circle cx="440" cy="607" r="9" fill="#f2e2b0"/><circle cx="706" cy="450" r="5.5" fill="#f2e2b0" opacity="0.45"/>
+  <circle cx="538" cy="630" r="9" fill="#ffa94d"/><circle cx="862" cy="383" r="4" fill="#ffa94d" opacity="0.45"/>
+  <circle cx="884" cy="405" r="4.5" fill="#4dd6ff" opacity="0.45"/>
+  <circle cx="885" cy="495" r="6" fill="#63e6a5" opacity="0.45"/><circle cx="965" cy="351" r="3.5" fill="#63e6a5" opacity="0.45"/>
+  <circle cx="954" cy="585" r="8" fill="#ff6b81"/><circle cx="982" cy="428" r="5" fill="#ff6b81" opacity="0.45"/>
+  <circle cx="1060" cy="518" r="6.5" fill="#b693ff" opacity="0.45"/><circle cx="1028" cy="360" r="3.5" fill="#b693ff" opacity="0.45"/>
+  <path d="M737 548 L737 300" stroke="#4dd6ff" stroke-opacity="0.5" stroke-width="3"/>
+  <ellipse cx="737" cy="552" rx="30" ry="9" fill="none" stroke="#4dd6ff" stroke-width="2"/>
+  <path d="M737 528 L753 548 L737 568 L721 548 Z" fill="#4dd6ff"/>
+
+  <!-- the scrolling event list -->
+  <rect x="0" y="76" width="470" height="564" fill="url(#fade)"/>
+  <text x="28" y="34" fill="#8fa0bd" font-size="12" letter-spacing="4">THE COMING WAVE</text>
+  <text x="28" y="54" fill="#55627f" font-size="11">AI events, 1950 to Nov 2026</text>
+  <text x="270" y="56" fill="#e8edf7" font-size="44" font-weight="300">2017</text>
+  <g font-size="14" font-weight="600" fill="#e8edf7">
+    <text x="42" y="212" opacity="0.4">AI cools Google's data centres</text>
+    <text x="42" y="262" opacity="0.55">Ke Jie falls: China's wake-up call</text>
+    <path d="M28 290 L28 366" stroke="#4dd6ff" stroke-width="2"/>
+    <text x="42" y="302" fill="#8fa0bd" font-size="10" font-weight="400" letter-spacing="1.5">JUN 2017 · LANGUAGE &amp; GENERATIVE</text>
+    <text x="42" y="328" font-size="19"><tspan fill="#4dd6ff">★</tspan> Attention Is All You Need</text>
+    <text x="42" y="352" fill="#c3cee2" font-size="12" font-weight="400">Google researchers introduce the transformer.</text>
+    <text x="42" y="412" opacity="0.3">AlphaZero</text>
+    <text x="42" y="462" opacity="0.3">Google staff revolt over Project Maven</text>
+    <text x="42" y="512" opacity="0.3">BERT</text>
+  </g>
+
+  <!-- the story card, grown out of the major marker -->
+  <path d="M737 548 L640 330" stroke="#4dd6ff" stroke-opacity="0.35" stroke-dasharray="4 6"/>
+  <rect x="560" y="112" width="560" height="226" rx="14" fill="#0a0d1c" fill-opacity="0.95" stroke="#4dd6ff"/>
+  <text x="582" y="142" fill="#8fa0bd" font-size="11">Jun 2017</text>
+  <rect x="650" y="129" width="176" height="18" rx="9" fill="none" stroke="#4dd6ff"/>
+  <text x="660" y="142" fill="#4dd6ff" font-size="10">Language &amp; generative</text>
+  <text x="1098" y="142" fill="#8fa0bd" font-size="11" text-anchor="end">Major event 7 of 11</text>
+  <text x="582" y="176" fill="#e8edf7" font-size="22" font-weight="600">Attention Is All You Need</text>
+  <text x="582" y="202" fill="#4dd6ff" font-size="13" font-weight="600">The architecture under everything.</text>
+  <g fill="#e8edf7" font-size="12">
+    <text x="582" y="226">Eight Google researchers proposed the transformer: a network that</text>
+    <text x="582" y="245">weighs every word in a passage against every other and trains in</text>
+    <text x="582" y="264">parallel. It became the engine under nearly every language model.</text>
+  </g>
+  <text x="582" y="304" fill="#4dd6ff" font-size="28" font-weight="700">8</text>
+  <text x="612" y="302" fill="#8fa0bd" font-size="11">authors, one architecture</text>
+  <rect x="582" y="318" width="516" height="4" rx="2" fill="#1c2740"/>
+  <rect x="582" y="318" width="330" height="4" rx="2" fill="#4dd6ff"/>
+
+  <!-- the hybrid time axis -->
+  <rect x="28" y="674" width="1224" height="6" rx="3" fill="#18223a"/>
+  <rect x="28" y="674" width="560" height="6" rx="3" fill="#4dd6ff" opacity="0.55"/>
+  <g>
+    <circle cx="60" cy="677" r="6" fill="#f2e2b0"/><circle cx="76" cy="677" r="6" fill="#f2e2b0"/><circle cx="200" cy="677" r="6" fill="#f2e2b0"/>
+    <circle cx="150" cy="677" r="3.5" fill="#ffa94d"/><circle cx="262" cy="677" r="3.5" fill="#4dd6ff"/><circle cx="310" cy="677" r="3.5" fill="#ff6b81"/>
+    <circle cx="396" cy="677" r="6" fill="#f2e2b0"/><circle cx="444" cy="677" r="6" fill="#ffa94d"/><circle cx="528" cy="677" r="6" fill="#ffa94d"/>
+    <circle cx="588" cy="677" r="6" fill="#4dd6ff"/><circle cx="640" cy="677" r="3.5" fill="#b693ff"/><circle cx="700" cy="677" r="6" fill="#4dd6ff"/>
+    <circle cx="730" cy="677" r="6" fill="#63e6a5"/><circle cx="790" cy="677" r="3.5" fill="#b693ff"/><circle cx="826" cy="677" r="6" fill="#4dd6ff"/>
+    <circle cx="880" cy="677" r="3.5" fill="#ff6b81"/><circle cx="930" cy="677" r="3.5" fill="#b693ff"/><circle cx="1000" cy="677" r="6" fill="#4dd6ff"/>
+    <circle cx="1060" cy="677" r="3.5" fill="#63e6a5"/><circle cx="1110" cy="677" r="3.5" fill="#ff6b81"/><circle cx="1170" cy="677" r="3.5" fill="#b693ff"/>
+    <circle cx="1220" cy="677" r="3.5" fill="#b693ff"/>
+  </g>
+  <path d="M588 664 L588 690" stroke="#fff" stroke-width="2"/>
+  <g fill="#8fa0bd" font-size="10" text-anchor="middle">
+    <text x="28" y="704" text-anchor="start">1950</text><text x="297" y="704">2010</text><text x="664" y="704">2020</text>
+    <text x="1252" y="704" fill="#4dd6ff" text-anchor="end">Today</text>
+  </g>
+</svg>

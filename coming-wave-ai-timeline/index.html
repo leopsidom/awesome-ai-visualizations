@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Groundswell — an AI timeline after The Coming Wave</title>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+      :root {
+        --ink: #e8edf7;
+        --dim: #8fa0bd;
+        --faint: #55627f;
+        --accent: #4dd6ff;
+        --night: #02030a;
+        --sea: #060a14;
+        --panel: #0a0d1c;
+        --line: rgba(150, 170, 230, 0.16);
+        --side: 320px;
+        /* width of the scrolling event list; the story card keeps clear of it */
+        --list: min(40%, 430px);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--night);
+        color: var(--ink);
+        font: 400 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        letter-spacing: 0.02em;
+        overflow: hidden;
+      }
+
+      /* Stage and sidebar sit side by side; the sidebar never covers the scene. */
+      #app {
+        display: flex;
+        height: 100%;
+        width: 100%;
+      }
+
+      #stage {
+        position: relative;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        background: radial-gradient(120% 90% at 70% 100%, #0e2340 0%, var(--sea) 60%);
+      }
+
+      #view {
+        position: absolute;
+        inset: 0;
+      }
+
+      #view canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Darkens the scene behind an open story card. */
+      #dim {
+        position: absolute;
+        inset: 0;
+        background: #03060d;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+      }
+
+      #stage.holding #dim {
+        opacity: 0.45;
+      }
+
+      #fallback {
+        position: absolute;
+        right: 16px;
+        bottom: 80px;
+        max-width: 300px;
+        margin: 0;
+        font-size: 11px;
+        color: var(--dim);
+        text-align: right;
+      }
+
+      #hud {
+        position: absolute;
+        left: 28px;
+        top: 16px;
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+        pointer-events: none;
+        text-shadow: 0 1px 8px #000;
+      }
+
+      #hud .eyebrow {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      #hud .sub {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: var(--faint);
+      }
+
+      #year {
+        font: 300 44px/0.9 ui-monospace, Menlo, monospace;
+        letter-spacing: 0.06em;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 26px rgba(77, 214, 255, 0.35);
+      }
+
+      #panelOpen {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        display: none;
+        z-index: 5;
+      }
+
+      body.collapsed #panelOpen {
+        display: block;
+      }
+
+      /* ------------------------------------------- minor events: lyric list -- */
+      #lyrics {
+        position: absolute;
+        left: 0;
+        top: 76px;
+        bottom: 80px;
+        width: var(--list);
+        overflow: hidden;
+        background: linear-gradient(to right, rgba(2, 3, 10, 0.8), rgba(2, 3, 10, 0));
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
+      }
+
+      #lyricsTrack {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        position: absolute;
+        left: 26px;
+        right: 14px;
+        top: 0;
+        transition: transform 0.7s cubic-bezier(0.22, 0.8, 0.2, 1);
+        will-change: transform;
+      }
+
+      .ly {
+        padding: 7px 0 7px 14px;
+        border-left: 2px solid transparent;
+        opacity: 0.3;
+        cursor: pointer;
+        transition: opacity 0.45s ease;
+        text-shadow: 0 1px 6px #000;
+      }
+
+      .ly:hover {
+        opacity: 0.8;
+      }
+
+      .ly .d {
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      .ly .t {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      .ly .s {
+        display: none;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #c3cee2;
+      }
+
+      .ly.past {
+        opacity: 0.55;
+      }
+
+      .ly.on {
+        opacity: 1;
+        border-left-color: var(--c);
+      }
+
+      .ly.on .t {
+        font-size: 19px;
+      }
+
+      .ly.on .s {
+        display: block;
+        animation: rise 0.5s both;
+      }
+
+      .ly.major .t::before {
+        content: "★ ";
+        color: var(--c);
+      }
+
+      .ly.off {
+        display: none;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      #stage.no-lyrics #lyrics {
+        display: none;
+      }
+
+      /* -------------------------------------------- major events: story card -- */
+      #cardLayer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: grid;
+        place-items: center;
+        padding: 76px 24px 92px var(--list);
+      }
+
+      #stage.no-lyrics #cardLayer {
+        padding-left: 24px;
+      }
+
+      /* Closed, the card is a speck sitting on its event's marker (--fx, --fy). */
+      #card {
+        --fx: 0px;
+        --fy: 0px;
+        --c: var(--accent);
+        pointer-events: auto;
+        width: min(560px, 94%);
+        background: rgba(10, 13, 28, 0.95);
+        border: 1px solid var(--c);
+        border-radius: 14px;
+        padding: 18px 22px;
+        box-shadow: 0 30px 80px -30px #000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translate(var(--fx), var(--fy)) scale(0.12);
+        transition:
+          transform 0.6s cubic-bezier(0.3, 0, 0.6, 1),
+          opacity 0.4s 0.15s,
+          visibility 0s 0.6s;
+      }
+
+      #card.open {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        transition:
+          transform 0.65s cubic-bezier(0.2, 0.9, 0.2, 1),
+          opacity 0.3s,
+          visibility 0s;
+      }
+
+      .card-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .chip {
+        border: 1px solid var(--c);
+        color: var(--c);
+        border-radius: 999px;
+        padding: 1px 9px;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+      }
+
+      #cardN {
+        margin-left: auto;
+      }
+
+      #card h2 {
+        margin: 8px 0 0;
+        font: 600 22px/1.2 ui-monospace, Menlo, monospace;
+      }
+
+      /* The story unfolds after the card has grown: a 0fr -> 1fr grid row. */
+      .card-body {
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        transition:
+          grid-template-rows 0.3s,
+          opacity 0.2s;
+      }
+
+      #card.open .card-body {
+        grid-template-rows: 1fr;
+        opacity: 1;
+        transition:
+          grid-template-rows 0.55s 0.35s,
+          opacity 0.5s 0.5s;
+      }
+
+      .card-body > div {
+        overflow: hidden;
+        min-height: 0;
+      }
+
+      #cardKicker {
+        margin: 10px 0 0;
+        color: var(--c);
+        font-weight: 600;
+      }
+
+      #cardStory {
+        margin: 8px 0 0;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .card-stat {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 12px 0 0;
+      }
+
+      .card-stat strong {
+        font-size: 28px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        color: var(--c);
+      }
+
+      .card-stat span {
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .card-book {
+        margin: 10px 0 0;
+        padding: 9px 12px;
+        border-left: 3px solid var(--c);
+        border-radius: 0 8px 8px 0;
+        background: rgba(255, 255, 255, 0.04);
+        font-size: 12px;
+      }
+
+      .card-book b {
+        display: block;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      #cardTimer {
+        height: 4px;
+        margin-top: 14px;
+        border-radius: 2px;
+        background: #1c2740;
+        overflow: hidden;
+      }
+
+      #cardTimerFill {
+        display: block;
+        height: 100%;
+        width: 100%;
+        background: var(--c);
+      }
+
+      /* ------------------------------------------------------- time axis -- */
+      #axis {
+        position: absolute;
+        left: 28px;
+        right: 28px;
+        bottom: 12px;
+        height: 48px;
+        cursor: pointer;
+        touch-action: none;
+      }
+
+      #axisBar {
+        position: relative;
+        height: 6px;
+        margin-top: 14px;
+        border-radius: 3px;
+        background: #18223a;
+      }
+
+      #axisFill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0;
+        border-radius: 3px;
+        background: linear-gradient(90deg, #2456c9, var(--accent));
+        opacity: 0.55;
+      }
+
+      .dot {
+        position: absolute;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        margin: -3.5px 0 0 -3.5px;
+        border-radius: 50%;
+        background: var(--c);
+      }
+
+      .dot.major {
+        width: 13px;
+        height: 13px;
+        margin: -6.5px 0 0 -6.5px;
+        border: 2px solid var(--sea);
+        box-shadow: 0 0 0 1px var(--c);
+      }
+
+      .dot.off {
+        display: none;
+      }
+
+      #axisHead {
+        position: absolute;
+        top: -7px;
+        left: 0;
+        width: 2px;
+        height: 20px;
+        margin-left: -1px;
+        border-radius: 1px;
+        background: #fff;
+      }
+
+      #axisTicks {
+        position: relative;
+        height: 16px;
+        margin-top: 8px;
+        font-size: 10px;
+        color: var(--dim);
+        font-variant-numeric: tabular-nums;
+        container-type: inline-size;
+      }
+
+      #axisTicks span {
+        position: absolute;
+        top: 0;
+        transform: translateX(-50%);
+        white-space: nowrap;
+      }
+
+      #axisTicks span.brk {
+        color: var(--faint);
+      }
+
+      #axisTicks span.today {
+        transform: translateX(-100%);
+        color: var(--accent);
+      }
+
+      /* On a short bar "Today" would run into the last year tick. */
+      @container (max-width: 780px) {
+        #axisTicks span.today {
+          display: none;
+        }
+      }
+
+      /* ------------------------------------------------------ side panel -- */
+      #side {
+        flex: 0 0 var(--side);
+        width: var(--side);
+        height: 100%;
+        overflow-y: auto;
+        background: var(--panel);
+        border-left: 1px solid var(--line);
+        padding: 22px 20px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        transition:
+          margin-right 0.35s ease,
+          visibility 0s;
+      }
+
+      body.collapsed #side {
+        margin-right: calc(-1 * var(--side));
+        visibility: hidden;
+        transition:
+          margin-right 0.35s ease,
+          visibility 0s 0.35s;
+      }
+
+      .side-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      h1 {
+        margin: 0;
+        font: 300 21px/1 ui-monospace, Menlo, monospace;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .sub {
+        margin: 6px 0 0;
+        color: var(--dim);
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .block {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.015);
+      }
+
+      .label {
+        color: var(--faint);
+        font-size: 10px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        margin: 0 0 8px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .row + .row {
+        margin-top: 8px;
+      }
+
+      button {
+        font: inherit;
+        color: var(--ink);
+        background: #121733;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      button.primary {
+        background: #14507a;
+        border-color: #2a86c0;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-size: 11px;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      #panelClose {
+        padding: 0 9px;
+        font-size: 17px;
+        line-height: 1.4;
+      }
+
+      .slider {
+        display: grid;
+        grid-template-columns: 82px 1fr 34px;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .slider + .slider {
+        margin-top: 8px;
+      }
+
+      .slider input {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+
+      .slider output {
+        text-align: right;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .check,
+      .thread {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--dim);
+        cursor: pointer;
+      }
+
+      .check {
+        margin-top: 10px;
+      }
+
+      .thread {
+        padding: 3px 0;
+        color: var(--ink);
+      }
+
+      .check input,
+      .thread input {
+        accent-color: var(--accent);
+      }
+
+      .thread i {
+        flex: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--c);
+      }
+
+      .thread small {
+        margin-left: auto;
+        color: var(--faint);
+      }
+
+      #majorList {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      #majorList li {
+        display: flex;
+        gap: 8px;
+        padding: 4px 6px;
+        margin-bottom: 3px;
+        border-left: 2px solid var(--c);
+        border-radius: 0 6px 6px 0;
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      #majorList li:hover {
+        background: #121733;
+      }
+
+      #majorList li.off {
+        display: none;
+      }
+
+      #majorList small {
+        flex: none;
+        width: 32px;
+        color: var(--dim);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .keys {
+        font-size: 11px;
+        color: var(--dim);
+        line-height: 1.8;
+      }
+
+      .keys kbd {
+        display: inline-block;
+        min-width: 52px;
+        color: var(--accent);
+        font: inherit;
+      }
+
+      .note {
+        margin-top: auto;
+        font-size: 10px;
+        color: var(--faint);
+        line-height: 1.6;
+      }
+
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 14px;
+        justify-items: center;
+        background: var(--night);
+        color: var(--dim);
+        font-size: 11px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        transition: opacity 0.9s ease;
+        z-index: 10;
+      }
+
+      #boot.gone {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #boot .pip {
+        width: 96px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        animation: sweep 1.6s ease-in-out infinite;
+      }
+
+      @keyframes sweep {
+        0%,
+        100% {
+          opacity: 0.2;
+          transform: scaleX(0.4);
+        }
+        50% {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+      }
+
+      /* Narrow screens: the panel moves under the stage, still beside it, never over it. */
+      @media (max-width: 760px) {
+        #app {
+          flex-direction: column;
+        }
+        #side {
+          flex: 0 0 44vh;
+          width: 100%;
+          height: 44vh;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+        body.collapsed #side {
+          margin-right: 0;
+          display: none;
+        }
+        #lyrics {
+          width: 100%;
+        }
+        #cardLayer {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        #year {
+          font-size: 30px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <main id="stage">
+        <div id="view"></div>
+        <div id="dim"></div>
+        <p id="fallback" hidden>
+          The 3D scene could not start (WebGL or the three.js CDN is unavailable). The timeline still plays.
+        </p>
+
+        <header id="hud">
+          <div>
+            <span class="eyebrow">The Coming Wave</span>
+            <span class="sub" id="span">AI events</span>
+          </div>
+          <div id="year">1950</div>
+        </header>
+
+        <section id="lyrics" aria-label="Timeline events">
+          <ol id="lyricsTrack"></ol>
+        </section>
+
+        <div id="cardLayer">
+          <article id="card" aria-live="polite">
+            <div class="card-top">
+              <span id="cardDate"></span>
+              <span id="cardThread" class="chip"></span>
+              <span id="cardN"></span>
+            </div>
+            <h2 id="cardTitle"></h2>
+            <div class="card-body">
+              <div>
+                <p id="cardKicker"></p>
+                <p id="cardStory"></p>
+                <div class="card-stat"><strong id="cardStat"></strong><span id="cardStatLabel"></span></div>
+                <p class="card-book"><b id="cardBookLabel">In the book</b><span id="cardBook"></span></p>
+                <div id="cardTimer"><i id="cardTimerFill"></i></div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <footer id="axis" aria-label="Time axis">
+          <div id="axisBar">
+            <div id="axisFill"></div>
+            <div id="axisDots"></div>
+            <div id="axisHead"></div>
+          </div>
+          <div id="axisTicks"></div>
+        </footer>
+
+        <button id="panelOpen" type="button" title="Show the panel (H)">Controls</button>
+      </main>
+
+      <aside id="side" aria-label="Controls">
+        <div class="side-head">
+          <div>
+            <h1>Groundswell</h1>
+            <p class="sub">An AI timeline, after The Coming Wave</p>
+          </div>
+          <button id="panelClose" type="button" title="Hide this panel (H)" aria-label="Hide this panel">&times;</button>
+        </div>
+
+        <div class="block">
+          <p class="label">Playback</p>
+          <div class="row">
+            <button class="primary" id="playBtn" type="button">Play</button>
+            <button id="restartBtn" type="button">Restart</button>
+          </div>
+          <div class="row">
+            <button id="prevBtn" type="button">Previous</button>
+            <button id="nextBtn" type="button">Next</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="label">Pace</p>
+          <label class="slider">
+            <span>Speed</span>
+            <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1" />
+            <output id="speedOut">1x</output>
+          </label>
+          <label class="slider">
+            <span>Story pause</span>
+            <input type="range" id="pause" min="2" max="15" step="1" value="5" />
+            <output id="pauseOut">5 s</output>
+          </label>
+          <label class="check"><input type="checkbox" id="autoPause" checked /> Pause on major events</label>
+          <label class="check"><input type="checkbox" id="showList" checked /> Show the event list</label>
+        </div>
+
+        <div class="block">
+          <p class="label">Threads</p>
+          <div id="threadList"></div>
+        </div>
+
+        <div class="block">
+          <p class="label">Major events</p>
+          <ol id="majorList"></ol>
+        </div>
+
+        <div class="keys">
+          <div><kbd>space</kbd> play / pause (also holds an open card)</div>
+          <div><kbd>← / →</kbd> previous / next event</div>
+          <div><kbd>R</kbd> restart from 1950</div>
+          <div><kbd>H</kbd> hide this panel</div>
+          <div style="color: var(--faint)">click a line, an axis dot or a 3D marker to jump there</div>
+        </div>
+
+        <div class="note">
+          The axis is hybrid: 1950&ndash;2009 is compressed and 2010 to today is stretched. Events and dates
+          are an editorial selection, not checked line by line against the book; see the README.
+        </div>
+      </aside>
+    </div>
+
+    <div id="boot">
+      <div>raising the swell</div>
+      <div class="pip"></div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
