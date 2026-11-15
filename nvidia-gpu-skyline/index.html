@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Tapeout — thirty years of NVIDIA GPUs as a skyline</title>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+      :root {
+        --ink: #e3eedb;
+        --dim: #94a888;
+        --faint: #5b6b52;
+        --accent: #76b900;
+        --night: #050705;
+        --panel: #0b100a;
+        --line: rgba(140, 200, 90, 0.16);
+        --side: 320px;
+        --font: ui-monospace, "SF Mono", Menlo, Consolas, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+          "Noto Sans CJK SC", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--night);
+        color: var(--ink);
+        font: 400 13px/1.5 var(--font);
+        letter-spacing: 0.02em;
+        overflow: hidden;
+      }
+
+      /* Stage and sidebar sit side by side; the sidebar never covers the scene. */
+      #app {
+        display: flex;
+        height: 100%;
+        width: 100%;
+      }
+
+      #stage {
+        position: relative;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        background: #070a07;
+      }
+
+      #view {
+        position: absolute;
+        inset: 0;
+        touch-action: none;
+      }
+
+      #view canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      #fallback {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        max-width: 300px;
+        margin: 0;
+        font-size: 11px;
+        color: var(--dim);
+        text-align: right;
+      }
+
+      #hud {
+        position: absolute;
+        left: 22px;
+        top: 16px;
+        pointer-events: none;
+        text-shadow: 0 1px 8px #000;
+      }
+
+      #hud .eyebrow {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      #year {
+        font: 300 40px/1 var(--font);
+        letter-spacing: 0.04em;
+        font-variant-numeric: tabular-nums;
+        color: var(--accent);
+        text-shadow: 0 0 26px rgba(118, 185, 0, 0.35);
+      }
+
+      #hudSub {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      #panelOpen {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        display: none;
+        z-index: 5;
+      }
+
+      body.collapsed #panelOpen {
+        display: block;
+      }
+
+      /* ------------------------------------------------ labels in the scene -- */
+      .labels {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .ms {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 4px;
+        padding: 1px 7px 1px 5px;
+        font-size: 11px;
+        color: #f2f9ea;
+        white-space: nowrap;
+        background: rgba(6, 10, 5, 0.8);
+        border: 1px solid #2f4a22;
+        border-left: 3px solid var(--accent);
+        border-radius: 3px;
+      }
+
+      .ms i {
+        flex: none;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+
+      .yl {
+        font-size: 12px;
+        font-weight: 600;
+        color: #7d9a6c;
+      }
+
+      /* Lane names: short and on one line. The home view leaves about 150 px for them
+         left of the lanes, and the back lanes are close together on screen there. */
+      .ll {
+        padding-right: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.2;
+        color: #b9d3a8;
+        white-space: nowrap;
+        text-shadow: 0 1px 6px #000;
+      }
+
+      .gl {
+        font-size: 10px;
+        color: #9cc56a;
+        white-space: nowrap;
+      }
+
+      .gt {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+
+      /* --------------------------------------------------------- tooltip -- */
+      #tip {
+        position: absolute;
+        z-index: 4;
+        max-width: 310px;
+        padding: 9px 11px;
+        pointer-events: none;
+        background: rgba(7, 11, 6, 0.96);
+        border: 1px solid #2f4a22;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+
+      #tip .h {
+        padding-left: 7px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+        border-left: 4px solid;
+      }
+
+      #tip .s {
+        margin: 3px 0 6px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      #tip table {
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      #tip td {
+        padding: 1px 10px 1px 0;
+        vertical-align: top;
+      }
+
+      #tip td:first-child {
+        color: #7d9a6c;
+        white-space: nowrap;
+      }
+
+      #tip .f {
+        margin-top: 6px;
+        font-size: 11px;
+        font-style: italic;
+        color: #c9dcbc;
+      }
+
+      #tip .v {
+        margin-top: 6px;
+        font-size: 11px;
+      }
+
+      /* ------------------------------------------------------ side panel -- */
+      #side {
+        flex: 0 0 var(--side);
+        width: var(--side);
+        height: 100%;
+        overflow-y: auto;
+        background: var(--panel);
+        border-left: 1px solid var(--line);
+        padding: 22px 20px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        transition:
+          margin-right 0.35s ease,
+          visibility 0s;
+      }
+
+      body.collapsed #side {
+        margin-right: calc(-1 * var(--side));
+        visibility: hidden;
+        transition:
+          margin-right 0.35s ease,
+          visibility 0s 0.35s;
+      }
+
+      .side-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      h1 {
+        margin: 0;
+        font: 300 21px/1 var(--font);
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .sub {
+        margin: 6px 0 0;
+        color: var(--dim);
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .block {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.015);
+      }
+
+      .label {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 0 0 8px;
+        color: var(--faint);
+        font-size: 10px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+      }
+
+      .small {
+        margin: 6px 0 0;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .row3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+      }
+
+      button {
+        font: inherit;
+        color: var(--ink);
+        background: #141d10;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 6px 8px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #061003;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 11px;
+      }
+
+      button.link {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--accent);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      #panelClose {
+        padding: 0 9px;
+        font-size: 17px;
+        line-height: 1.4;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+
+      #yearRange {
+        margin: 10px 0 0;
+      }
+
+      #followRow {
+        margin-top: 8px;
+      }
+
+      .slider {
+        display: grid;
+        grid-template-columns: 70px 1fr 38px;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .slider output {
+        text-align: right;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .check,
+      .radio {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .check input,
+      .radio input {
+        accent-color: var(--accent);
+      }
+
+      .check small,
+      .radio small {
+        color: var(--faint);
+        font-size: 11px;
+      }
+
+      .market small {
+        margin-left: auto;
+      }
+
+      /* segmented switches: language and transistor scale */
+      .seg-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .seg-row.muted > span {
+        opacity: 0.55;
+      }
+
+      #tscaleRow {
+        margin-top: 8px;
+      }
+
+      .seg {
+        display: inline-flex;
+        flex: none;
+        border: 1px solid #2f4a22;
+        border-radius: 7px;
+        overflow: hidden;
+      }
+
+      .seg button {
+        border: 0;
+        border-radius: 0;
+        background: #0f170c;
+        color: var(--dim);
+        padding: 4px 11px;
+        font-size: 12px;
+      }
+
+      .seg button + button {
+        border-left: 1px solid #2f4a22;
+      }
+
+      .seg button.on {
+        background: var(--accent);
+        color: #061003;
+        font-weight: 700;
+      }
+
+      .seg-row > span {
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      #scaleHint {
+        min-height: 32px;
+      }
+
+      #archList {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3px 6px;
+      }
+
+      .arch {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 5px;
+        font-size: 11px;
+        text-align: left;
+        white-space: nowrap;
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 5px;
+      }
+
+      .arch i {
+        flex: none;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        background: var(--c);
+      }
+
+      .arch small {
+        margin-left: auto;
+        color: var(--faint);
+        font-size: 10px;
+      }
+
+      .arch:hover {
+        background: #141d10;
+        border-color: transparent;
+      }
+
+      .arch.on {
+        background: #1d2b15;
+        border-color: var(--accent);
+      }
+
+      .arch.off {
+        opacity: 0.35;
+      }
+
+      .legend {
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--dim);
+      }
+
+      .legend div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+      }
+
+      .legend b {
+        flex: none;
+        width: 12px;
+        height: 14px;
+      }
+
+      .legend .solid {
+        background: var(--accent);
+      }
+
+      .legend .partial {
+        background: rgba(118, 185, 0, 0.45);
+      }
+
+      .legend .hollow {
+        border: 1.5px solid var(--accent);
+      }
+
+      .legend .stub {
+        height: 5px;
+        align-self: flex-end;
+        margin-bottom: 4px;
+        background: #4a524a;
+      }
+
+      .keys {
+        font-size: 11px;
+        color: var(--dim);
+        line-height: 1.8;
+      }
+
+      .keys kbd {
+        display: inline-block;
+        min-width: 52px;
+        color: var(--accent);
+        font: inherit;
+      }
+
+      .note {
+        margin-top: auto;
+        font-size: 10px;
+        color: var(--faint);
+        line-height: 1.6;
+      }
+
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 14px;
+        justify-items: center;
+        background: var(--night);
+        color: var(--dim);
+        font-size: 11px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        transition: opacity 0.9s ease;
+        z-index: 10;
+      }
+
+      #boot.gone {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #boot .pip {
+        width: 96px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        animation: sweep 1.6s ease-in-out infinite;
+      }
+
+      @keyframes sweep {
+        0%,
+        100% {
+          opacity: 0.2;
+          transform: scaleX(0.4);
+        }
+        50% {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+      }
+
+      /* Narrow screens: the panel moves under the stage, still beside it, never over it. */
+      @media (max-width: 760px) {
+        #app {
+          flex-direction: column;
+        }
+        #side {
+          flex: 0 0 44vh;
+          width: 100%;
+          height: 44vh;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+        body.collapsed #side {
+          margin-right: 0;
+          display: none;
+        }
+        #year {
+          font-size: 28px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <main id="stage">
+        <div id="view"></div>
+        <p id="fallback" data-i18n="fallback" hidden></p>
+
+        <header id="hud">
+          <span class="eyebrow" data-i18n="eyebrow">NVIDIA GPUs</span>
+          <div id="year">1995–2025</div>
+          <span id="hudSub"></span>
+        </header>
+
+        <div id="tip" hidden></div>
+        <button id="panelOpen" type="button" data-i18n="panelOpen">Controls</button>
+      </main>
+
+      <aside id="side" aria-label="Controls">
+        <div class="side-head">
+          <div>
+            <h1 data-i18n="title">Tapeout</h1>
+            <p class="sub" data-i18n="subtitle">NVIDIA GPUs, 1995–2025</p>
+          </div>
+          <button id="panelClose" type="button">&times;</button>
+        </div>
+
+        <div class="seg-row">
+          <span data-i18n="language">Language</span>
+          <div class="seg" id="langSeg">
+            <button type="button" data-lang="en">EN</button>
+            <button type="button" data-lang="zh">中文</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <p class="label" data-i18n="timeline">Timeline</p>
+          <div class="row3">
+            <button class="primary" id="playBtn" type="button">Play</button>
+            <button id="allBtn" type="button" data-i18n="showAll">Show all</button>
+            <button id="homeBtn" type="button" data-i18n="resetView">Reset view</button>
+          </div>
+          <input type="range" id="yearRange" min="1995" max="2026" step="0.05" value="2026" />
+          <p class="small" id="yearOut"></p>
+          <label class="slider">
+            <span data-i18n="speed">Speed</span>
+            <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1" />
+            <output id="speedOut">1x</output>
+          </label>
+          <label class="check" id="followRow">
+            <input type="checkbox" id="follow" /> <span data-i18n="follow">Camera follows the year</span>
+          </label>
+          <p class="small" data-i18n="followHint"></p>
+        </div>
+
+        <div class="block">
+          <p class="label" data-i18n="height">Tower height</p>
+          <label class="radio">
+            <input type="radio" name="metric" value="transistors" checked />
+            <span data-measure="transistors"></span><small data-unit="transistors"></small>
+          </label>
+          <label class="radio">
+            <input type="radio" name="metric" value="process" />
+            <span data-measure="process"></span><small data-unit="process"></small>
+          </label>
+          <label class="radio">
+            <input type="radio" name="metric" value="power" />
+            <span data-measure="power"></span><small data-unit="power"></small>
+          </label>
+          <div class="seg-row" id="tscaleRow">
+            <span data-i18n="tscale">Transistor scale</span>
+            <div class="seg" id="tscaleSeg">
+              <button type="button" data-tscale="log" data-i18n="log">Log</button>
+              <button type="button" data-tscale="linear" data-i18n="linear">Linear</button>
+            </div>
+          </div>
+          <p class="small" id="scaleHint"></p>
+        </div>
+
+        <div class="block">
+          <p class="label" data-i18n="markets">Markets</p>
+          <div id="marketList"></div>
+        </div>
+
+        <div class="block">
+          <p class="label">
+            <span data-i18n="arch">Architecture</span>
+            <button class="link" id="clearArch" type="button" data-i18n="clear">clear</button>
+          </p>
+          <div id="archList"></div>
+          <p class="small" data-i18n="archHint"></p>
+        </div>
+
+        <div class="block">
+          <p class="label" data-i18n="display">Display</p>
+          <label class="check"><input type="checkbox" id="milestones" checked /> <span id="milestonesLabel"></span></label>
+          <div class="legend">
+            <div><b class="solid"></b><span data-key="solid"></span></div>
+            <div><b class="partial"></b><span data-key="partial"></span></div>
+            <div><b class="hollow"></b><span data-key="hollow"></span></div>
+            <div><b class="stub"></b><span data-key="stub"></span></div>
+          </div>
+        </div>
+
+        <div class="keys" id="keys"></div>
+
+        <div class="note" data-i18n="note"></div>
+      </aside>
+    </div>
+
+    <div id="boot">
+      <div data-i18n="boot">laying out the wafer</div>
+      <div class="pip"></div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
