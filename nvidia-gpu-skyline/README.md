@@ -95,10 +95,10 @@ works on a wide screen.
 
 | Check status | Rows | Drawn as                     |
 | ------------ | ---: | ---------------------------- |
-| Verified     |   45 | Solid                        |
-| Corrected    |   21 | Solid (a value changed in the check) |
-| Partial      |   19 | See-through                  |
-| Unverified   |   50 | Hollow: a bright outline     |
+| Verified     |   52 | Solid                        |
+| Corrected    |   24 | Solid (a value changed in the check) |
+| Partial      |   17 | See-through                  |
+| Unverified   |   42 | Hollow: a bright outline     |
 
 Fields: name, date, chip, architecture, market, process (nm), transistors (millions), die (mm²), cores,
 memory (GB) and type, board power (W), launch price (US$), a note, and for 19 rows a milestone label. Every
@@ -106,17 +106,23 @@ note and milestone also has a Chinese version.
 
 What to know before relying on it:
 
-- **The rows were first written from memory** of public spec sheets. 85 have since been checked against
-  TechPowerUp, Wikipedia or NVIDIA's pages; 21 of those had a value corrected. **The other 50 are unchecked.**
-  They are mostly the GeForce 6 to 9 series, the RTX 30 and 40 series, and the 2020–2025 data-center
-  products. The check stopped when the search service hit its usage limit.
+- **The rows were first written from memory** of public spec sheets. 93 have since been checked against
+  TechPowerUp, Wikipedia or NVIDIA's pages; 24 of those had a value corrected. **The other 42 are unchecked.**
+  They are mostly the GeForce 6 to 9 series and the RTX 30 and 40 series. The first check stopped when the
+  search service hit its usage limit.
+- **The data-center rows were checked again in November 2026** for [The AI Factory](../nvidia-datacenter-skyline/),
+  which carries the sources for each. That check corrected the Tesla C870's launch price ($1,299 → $1,499) and
+  the Tesla C1060's date (2008-12 → 2008-06-16) and added its price ($1,699); it added CUDA core counts for the
+  B200 (33,792) and B300 (20,480, worked out from NVIDIA's 160 SMs × 128); and it confirmed the K10, K20X, K40,
+  A100, H100, L4 and H200 unchanged. The B300 stays partial and the DGX Spark unverified.
 - **The "partial" rows rest in part on spec-aggregator sites**, not on NVIDIA or TechPowerUp.
 - **Data-center and workstation products are dated by announcement**, not by shipping (H100, H200, B200,
-  B300, RTX PRO 6000, Quadro RTX 8000 and others). Eleven rows are known to the month only and sit mid-month.
-- **Process node is as TechPowerUp lists it.** Ada and consumer Blackwell are at 5 nm and Hopper and B200 at
-  4 nm, though all are TSMC "4N". The Switch 2's T239 is listed at 8 nm; a shrink to 5 nm is disputed.
+  B300, RTX PRO 6000, Quadro RTX 8000 and others). Ten rows are known to the month only and sit mid-month.
+- **Process node is as TechPowerUp lists it,** except that Hopper and data-center Blackwell stay at 4 nm,
+  after NVIDIA's "TSMC 4N" / "4NP" (TechPowerUp lists H100 and B200 at 5 nm). Ada and consumer Blackwell are
+  at 5 nm, though all are TSMC "4N". The Switch 2's T239 is listed at 8 nm; a shrink to 5 nm is disputed.
 - **Dual-GPU boards** (9800 GX2, GTX 295, GTX 690, Titan Z, K10, K80, M60) give transistors and die size per
-  GPU, but cores and memory for the whole board. The dual-die B200 and B300 give transistors for the package.
+  GPU, but cores and memory for the whole board. The dual-die B200 and B300 give transistors and cores for the package.
 - **Eight GPUs have no transistor count**, among them the NV1, Tegra 2, Tegra K1 and DGX Spark. They stand as
   grey stubs while height is on transistors.
 - **The Chinese translations were machine-written** and no native reader has reviewed them.
@@ -191,7 +197,8 @@ lanes and the architecture bars are worked out from the data on load.
 
 ### Verified
 
-- **Data:** the 135 rows in `src/data.js` match, field for field, the dataset approved before the build.
+- **Data:** the 135 rows in `src/data.js` match, field for field, the dataset approved before the build, with
+  the November 2026 data-center corrections applied on top (11 rows; see [The data](#the-data)).
 - **Static checks**, run in Python because no browser was available:
   - Brackets, strings and template literals balance in all ten modules.
   - Every import matches an export.
