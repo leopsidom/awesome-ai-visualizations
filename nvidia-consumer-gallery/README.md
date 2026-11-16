@@ -33,7 +33,9 @@ browser can pair a fresh `index.html` with stale cached scripts. `http.server` a
 long-lived cache headers, so browsers guess, and Chrome's normal reload can reuse cached scripts. This
 happened once during the build: the new page with the old `main.js` left the story card in the top-left
 corner.
-Playback starts by itself. At 1× the walk takes about 61 s of travel plus a 7 s pause at each of the nine
+Playback starts by itself, after a title frame ("1995 – 2025 · NVIDIA's 88 consumer (gaming) GPUs") that
+holds for about 4 s over the darkened hall and then eases out; it returns on Restart, `space` holds it, and
+stepping to a milestone skips it. At 1× the walk takes about 61 s of travel plus a 7 s pause at each of the nine
 milestones, about 2 min 4 s in all.
 
 ## Controls
@@ -71,8 +73,10 @@ The layout is re-checked on every resize, so rotating a phone or closing the pan
 | Narrow (portrait)   | stage under 760 px wide, or taller than wide  | sheet below the stage, starts hidden | pop-up above the GPU, 80% of the stage width; the year counter hides |
 | Short (landscape)   | wider than tall but under 500 px high         | 270 px column, starts hidden     | pop-up to the GPU's right (arrow pointing left), below the stage buttons |
 
-On narrow and short stages the list shows two lines (only the newest with its note), and the camera widens its field of
-view. Its distance is fitted to the stage width, so a whole card stays in frame on a 390 px phone.
+On narrow and short stages the list keeps its five rows with smaller type, and the camera widens its field of
+view. On phones the camera also slides the picture sideways so the milestone GPU is centred (the three-quarter
+view would otherwise leave it off to one side), and the story card is centred on the stage with its arrow
+still pointing at the GPU. Its distance is fitted to the stage width, so a whole card stays in frame on a 390 px phone.
 
 ## The data
 
@@ -129,7 +133,7 @@ The story text was reworded where a claim in the original brief went further tha
   dual-GPU GTX 690 ($999) came first. It was the first *single-GPU* GeForce at $999, with the GK110 chip of
   the Tesla K20X cards in Oak Ridge's Titan supercomputer. Its 1.3 TFLOPS double precision is NVIDIA's
   figure; the K20X is rated 1.31 TFLOPS. Deep-learning use is a later Titan X story, so its card doesn't
-  claim it. NVIDIA calls the RTX 3090 "TITAN class" on its product page.
+  claim it.
 - **RTX 20:** it "brought RT Cores to gaming". The Quadro RTX workstation cards had them a week earlier.
 - **RTX 4090:** the AI angle rests on the US export ban to China (October 2023). Only hobbyist and
   benchmark sites call it a local-AI card.
@@ -215,14 +219,19 @@ Each hero row carries the pages used in its check in `hero.sources`.
   so even this close they read smaller on screen than the milestone cards.
 - **Names are read from a still list, not from the wall.** An earlier version put a name label under each
   wall card. The labels moved with the camera and were hard to read, so they are hidden during the walk.
-  Instead the list sits centred near the bottom of the stage, on a soft dark backing: four lines on a
-  desktop and two on a phone, with the newest (the card in the spotlight) set larger with its note. On
-  phones only that newest line keeps its note. It sits 9% of the stage height up from the bottom (18% on
-  phones, 10% in landscape), so a screen recording posted to a video app keeps it clear of the captions
-  and buttons those apps overlay. The camera is aimed low enough that all three rows of cards stay above it. It dims to 12%
-  while a milestone story card is open, and hides on phones. Hover or tap any wall card for its tooltip.
-  A plinth's plaque shows only within 20 units, because HTML labels are not hidden by the 3D scene and far
-  plaques would pile up across the curve.
+  Instead the list sits in the centre of the stage, on a soft dark backing, as a five-row window onto a
+  strip of all 79 minor GPUs. The card being passed (the one in the spotlight) is always the middle, third
+  row, set larger and fully bright, with the two before it above and the next two below; the outer rows
+  dim and the window fades at its top and bottom edges. Each row has the name and its note, on desktop and
+  phones alike. Moving on to the next GPU slides the strip by one row with an eased 0.7 s transition (it
+  scrolls, rather than re-drawing); jumps from the milestone list, restart or a language change move it
+  without the slide. The walk camera is aimed so the list falls in the gap between the bottom and middle
+  rows of cards. When a milestone takes focus the list eases out (0.45 s, drifting down slightly); when the
+  walk resumes it eases back in (0.8 s, after a 0.2 s beat). Hover or tap any wall card for its tooltip.
+- **A milestone's plaque shows only while it is focused.** The "2013 / GeForce GTX Titan" text under each
+  plinth eases in with the story card and eases out as the walk resumes, at the same moment the list
+  eases back in. It is also hidden beyond 20 units, because HTML labels are not hidden by the 3D scene and
+  far plaques would pile up across the curve.
 - **One state, several views.** `main.js` owns the state and passes a small `view` object to
   `world.render()` each frame. The panel, keyboard, story buttons and clicks in the scene all go through
   the same `goto` / `setPlaying` calls.

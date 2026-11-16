@@ -13,11 +13,11 @@
         "imports": {
           "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
           "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/",
-          "./src/cards.js": "./src/cards.js?v=2026-11-16r",
-          "./src/data.js": "./src/data.js?v=2026-11-16r",
-          "./src/i18n.js": "./src/i18n.js?v=2026-11-16r",
-          "./src/layout.js": "./src/layout.js?v=2026-11-16r",
-          "./src/world.js": "./src/world.js?v=2026-11-16r"
+          "./src/cards.js": "./src/cards.js?v=2026-11-16x",
+          "./src/data.js": "./src/data.js?v=2026-11-16x",
+          "./src/i18n.js": "./src/i18n.js?v=2026-11-16x",
+          "./src/layout.js": "./src/layout.js?v=2026-11-16x",
+          "./src/world.js": "./src/world.js?v=2026-11-16x"
         }
       }
     </script>
@@ -73,19 +73,30 @@
       #chapter { color: var(--green); font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; margin-top: 8px; transition: opacity 0.3s; }
       body.story-open #chapter { opacity: 0; }
       /* centred under the wall; the newest line is the card in the spotlight. Dims while a milestone is open. */
-      #list { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(18px, 9%); width: min(620px, 72%); z-index: 9; pointer-events: none;
-        display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; transition: opacity 0.4s;
-        padding: 10px 18px 12px; border-radius: 12px; background: radial-gradient(ellipse at 50% 70%, rgba(10, 12, 16, 0.62), rgba(10, 12, 16, 0) 72%);
+      /* a five-row window onto the full strip of minor GPUs (see syncList in main.js); fades at top and bottom */
+      #list { --row: 46px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(620px, 72%); z-index: 9; pointer-events: none;
+        height: calc(var(--row) * 5); overflow: hidden; padding: 0 18px; text-align: center; border-radius: 12px;
+        background: radial-gradient(ellipse at 50% 50%, rgba(10, 12, 16, 0.6), rgba(10, 12, 16, 0) 72%);
+        -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent); mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
         text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
-      #list:empty { display: none; }
-      body.story-open #list { opacity: 0.12; }
-      #list .row { display: block; font-size: 13px; max-width: 100%; }
-      #list .row.now { font-size: 18px; margin-top: 2px; }
-      #list .row.now .d { color: var(--green); font-size: 14px; }
-      #list .row.now .t { font-size: 13px; color: #c5ccd4; white-space: normal; }
+      #list .track { transform: translateY(calc(var(--shift, 2) * var(--row))); transition: transform 0.7s cubic-bezier(.22,.8,.3,1); }
+      #list .track.jump { transition: none; }
+      #list .row { height: var(--row); display: flex; flex-direction: column; justify-content: center; align-items: center; flex-wrap: nowrap;
+        gap: 1px; line-height: 1.25;   /* title and note sit together; the row's spare height falls between items */
+        opacity: 0.18; transform: scale(0.9); transition: opacity 0.5s ease, transform 0.5s ease; }
+      #list .row[data-d="2"] { opacity: 0.32; transform: scale(0.92); }
+      #list .row[data-d="1"] { opacity: 0.6; transform: scale(0.96); }
+      #list .row.now { opacity: 1; transform: scale(1.12); }
+      #list .l1, #list .t { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #list .l1 { font-size: 14px; }
+      #list .row.now .d { color: var(--green); }
+      #list .row.now .t { color: #c5ccd4; }
+      /* eases out when a milestone takes focus, eases back in (after a beat) when the walk resumes */
+      #list { transition: opacity 0.8s cubic-bezier(.2,.8,.2,1) 0.2s, transform 0.8s cubic-bezier(.2,.8,.2,1) 0.2s; }
+      body.story-open #list { opacity: 0; transform: translate(-50%, calc(-50% + 18px)) scale(0.97); transition: opacity 0.45s ease-in, transform 0.45s ease-in; }
       #list .d { color: var(--dim); margin-right: 6px; font-size: 11.5px; font-variant-numeric: tabular-nums; }
       #list .n { font-weight: 600; }
-      #list .t { color: var(--dim); display: block; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #list .t { color: var(--dim); font-size: 11.5px; }
       .sw { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 
       /* ---- story card: a see-through pop-up anchored to the focused GPU (placed by main.js every frame) */
@@ -114,7 +125,10 @@
       #sBar { display: block; height: 100%; background: var(--green); transform-origin: left; }
 
       /* ---- labels and tooltip */
-      .plaque { color: var(--ink); font-size: 11px; text-align: center; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap; }
+      /* a milestone's plaque shows only while it is focused: eases in with the story card, out as the walk resumes */
+      .plaque { color: var(--ink); font-size: 11px; text-align: center; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap;
+        opacity: 0; transition: opacity 0.45s ease-in; }
+      .plaque.on { opacity: 1; transition: opacity 0.8s cubic-bezier(.2,.8,.2,1) 0.2s; }
       .plaque b { color: var(--green); display: block; font-size: 12px; }
       .wlab { color: #cfd5dc; font-size: 10px; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap; }
       .wlab i { font-style: normal; color: var(--dim); margin-right: 4px; }
@@ -139,12 +153,9 @@
       body.narrow.story-open #hud { opacity: 0; }
       body.narrow #stageBtns { top: auto; bottom: 10px; right: 10px; }
       /* phones sit higher (18% of the stage) so the list stays clear of the captions and buttons video apps overlay */
-      body.narrow #list { width: calc(100% - 24px); bottom: max(60px, 18%); gap: 2px; padding: 8px 10px; }
-      body.narrow.story-open #list { opacity: 0; }
-      body.narrow #list .row { font-size: 12px; }
-      body.narrow #list .row.now { font-size: 15px; }
-      body.narrow #list .t { display: none; }
-      body.narrow #list .row.now .t { display: block; font-size: 12px; }
+      body.narrow #list { --row: 40px; width: calc(100% - 24px); padding: 0 10px; }
+      body.narrow #list .l1 { font-size: 12.5px; }
+      body.narrow #list .t { font-size: 10.5px; }
       body.narrow #story { width: 80%; min-width: 0; max-height: 52%; padding: 10px 12px 8px; }
       body.narrow #sName { font-size: 18px; }
       body.narrow #story .cols { grid-template-columns: 1fr; gap: 6px; }
@@ -162,11 +173,23 @@
       body.short #hud { top: 10px; left: 12px; }
       body.short #year { font-size: 28px; }
       body.short #chapter { font-size: 10.5px; margin-top: 4px; }
-      body.short #list { bottom: max(8px, 10%); width: min(520px, 60%); padding: 6px 12px; }
-      body.short #list .t { display: none; }
-      body.short #list .row.now .t { display: block; font-size: 12px; }
+      body.short #list { --row: 32px; width: min(520px, 60%); padding: 0 12px; }
+      body.short #list .l1 { font-size: 12px; }
+      body.short #list .t { font-size: 10px; }
       body.short #panel { flex-basis: 270px; padding: 10px 14px; }
       body.short #panel .note, body.short #panel .sub { display: none; }
+
+      /* ---- title frame before the walk (body.intro, set by main.js) */
+      #intro { position: absolute; inset: 0; z-index: 18; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; padding: 24px; pointer-events: none; opacity: 0; transform: translateY(8px);
+        background: radial-gradient(ellipse at 50% 50%, rgba(8, 10, 13, 0.82), rgba(8, 10, 13, 0.45) 75%);
+        transition: opacity 0.9s ease, transform 0.9s ease; }
+      body.intro #intro { opacity: 1; transform: none; transition: opacity 0.6s ease, transform 0.6s ease; }
+      #intro .k { color: var(--green); font-size: 13px; text-transform: uppercase; letter-spacing: 0.22em; font-weight: 700; }
+      #intro h2 { margin: 8px 0 6px; font-size: clamp(42px, 9vw, 88px); font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+      #intro .s { font-size: clamp(17px, 3.6vw, 26px); font-weight: 600; }
+      #intro .n { color: var(--dim); font-size: clamp(12px, 2.4vw, 14px); margin-top: 14px; }
+      body.intro #hud, body.intro #list { opacity: 0; }
 
       @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
     </style>
@@ -175,6 +198,7 @@
     <div id="app">
       <main id="stage">
         <div id="hud"><div id="year">1995</div><div id="month"></div><div id="chapter"></div></div>
+        <div id="intro" aria-live="polite"><div class="k" data-t="introKicker"></div><h2 data-t="introTitle"></h2><div class="s" data-t="introSub"></div><div class="n" data-t="introNote"></div></div>
         <div id="list" aria-live="off"></div>
         <section id="story" hidden aria-live="polite">
           <div id="sKicker"></div>
@@ -219,6 +243,6 @@
         <div class="note"><span data-t="about"></span><br /><br /><span data-t="keys"></span></div>
       </aside>
     </div>
-    <script type="module" src="./src/main.js?v=2026-11-16r"></script>
+    <script type="module" src="./src/main.js?v=2026-11-16x"></script>
   </body>
 </html>

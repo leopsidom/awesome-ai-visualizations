@@ -25,7 +25,7 @@ const params = new URLSearchParams(location.search);
 const state = {
   lang: LANGS.includes(params.get("lang")) ? params.get("lang") : LANGS.includes(localStorage.getItem(LANG_KEY)) ? localStorage.getItem(LANG_KEY) : "en",
   u: U_START, playing: true, speed: 1, pauseSec: 7,
-  mode: "travel", k: -1, left: 0, shown: new Set(),
+  mode: "intro", k: -1, left: 0, shown: new Set(), introLeft: 0,
   narrow: false, short: false,
 };
 let text = makeText(state.lang);
@@ -47,19 +47,33 @@ function checkMode() {
 }
 
 // ---------------------------------------------------------------- list of minor GPUs
-let listed = -2;
+// The list: every minor GPU in one strip, seen five rows at a time through a fixed window. The row being
+// passed (the card in the spotlight) sits in the middle, third, slot: two earlier above, two upcoming below.
+// Moving on to the next GPU slides the strip by one row with an eased CSS transition instead of
+// re-rendering; a jump (milestone list, restart, language change) moves it without the slide.
+const MINOR_ROWS = GPUS.filter((g) => !g.hero);
+let listed = -2, track = null;
+function buildList() {
+  list.innerHTML = `<div class="track">${MINOR_ROWS.map((g) => `<div class="row">
+      <div class="l1"><span class="sw" style="background:${ARCH[g.arch]}"></span><span class="d">${g.date.slice(0, 7)}</span><span class="n">${g.name}</span></div>
+      <div class="t">${noteOf(g, state.lang) || `${g.chip} · ${g.arch}`}</div></div>`).join("")}</div>`;
+  track = list.firstElementChild;
+}
 function syncList(rebuild = false) {
   let idx = -1;
-  for (let i = 0; i < GPUS.length; i++) if (!GPUS[i].hero && GPUS[i].u <= state.u + 1e-6) idx = i;
-  if (idx === listed && !rebuild) return;
+  for (let i = 0; i < MINOR_ROWS.length; i++) if (MINOR_ROWS[i].u <= state.u + 1e-6) idx = i;
+  if (rebuild || !track) { buildList(); listed = -2; }
+  if (idx === listed) return;
+  const jump = listed === -2 || Math.abs(idx - listed) > 2;
   listed = idx;
-  // Centred under the wall: the newest line is the card being passed (the one in the spotlight), set larger;
-  // the lines above it fade out. Fewer lines than before, so it reads at a glance.
-  const max = state.narrow || state.short ? 2 : 4;
-  const rows = GPUS.filter((g) => !g.hero && g.u <= state.u + 1e-6).slice(-max);
-  list.innerHTML = rows.map((g, i) => `<div class="row${i === rows.length - 1 ? " now" : ""}" style="opacity:${i === rows.length - 1 ? 1 : (0.25 + (0.45 * (i + 1)) / rows.length).toFixed(2)}">
-      <span class="sw" style="background:${ARCH[g.arch]}"></span><span class="d">${g.date.slice(0, 7)}</span><span class="n">${g.name}</span>
-      <span class="t">${noteOf(g, state.lang) || `${g.chip} · ${g.arch}`}</span></div>`).join("");
+  if (jump) track.classList.add("jump");
+  track.style.setProperty("--shift", 2 - idx);   // rows to move down so row idx lands in slot 3 of 5
+  [...track.children].forEach((row, i) => {
+    const d = Math.abs(i - idx);
+    row.classList.toggle("now", i === idx);
+    row.dataset.d = d > 2 ? 3 : d;
+  });
+  if (jump) { void track.offsetHeight; track.classList.remove("jump"); }
 }
 
 // ---------------------------------------------------------------- story card
@@ -107,7 +121,8 @@ function placeStory() {
     top = clamp(a.cy - h / 2, BTN_ROOM, H - h - EDGE);   // keep clear of the play / Controls buttons
     cx = left; cy = clamp(a.cy, top + 18, top + h - 18); side = "left";
   } else {
-    left = clamp(a.cx - w / 2, EDGE, W - w - EDGE);
+    // phones: the card is centred on the stage (the camera centres the GPU too); the arrow still points at the GPU
+    left = state.narrow ? (W - w) / 2 : clamp(a.cx - w / 2, EDGE, W - w - EDGE);
     top = clamp(a.top - GAP - h, EDGE, H - h - EDGE);
     cx = clamp(a.cx, left + 18, left + w - 18); cy = top + h; side = "down";
   }
@@ -121,14 +136,20 @@ function closeStory() {
   document.body.classList.remove("story-open");
   markJump();
 }
+// Title frame shown before the walk (on load and after Restart): it holds for INTRO_SEC at 1x while the
+// hall waits behind it, then eases out. space holds it; stepping to a milestone skips it.
+const INTRO_SEC = 4;
+function startIntro() { state.mode = "intro"; state.u = U_START; state.introLeft = INTRO_SEC; document.body.classList.add("intro"); }
+function endIntro() { document.body.classList.remove("intro"); if (state.mode === "intro") state.mode = "travel"; }
 function goto(k) {
+  if (state.mode === "intro") endIntro();
   k = Math.max(0, Math.min(HEROES.length - 1, k));
   state.u = HEROES[k].u; syncList(true); openStory(k);
 }
-const position = () => { const c = chapterOf(state.u); return state.mode === "story" ? state.k : c + (state.u > HEROES[c].u ? 0.5 : 0); };
+const position = () => { const c = chapterOf(state.u); return state.mode === "story" ? state.k : state.u < HEROES[0].u ? -1 : c + (state.u > HEROES[c].u ? 0.5 : 0); };
 const prev = () => goto(Math.ceil(position()) - 1);
 const next = () => goto(Math.floor(position()) + 1);
-function restart() { closeStory(); state.u = U_START; state.shown.clear(); syncList(true); setPlaying(true); }
+function restart() { closeStory(); state.shown.clear(); startIntro(); syncList(true); setPlaying(true); }
 
 // ---------------------------------------------------------------- panel
 function setPlaying(p) {
@@ -235,6 +256,7 @@ setOpacity(Math.max(40, Math.min(100, +(localStorage.getItem(OPACITY_KEY) || 80)
 applyLang(state.lang, params.has("lang"));
 syncList(true);
 
+startIntro();
 try {
   const { createWorld } = await import("./world.js");
   world = createWorld(stage, { reduced });
@@ -243,6 +265,7 @@ try {
   $("fallback").hidden = false;
   setPlaying(false);
 }
+if (!world) endIntro();
 document.body.classList.remove("booting");
 
 // ---------------------------------------------------------------- frame loop
@@ -250,7 +273,10 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  if (state.mode === "story") {
+  if (state.mode === "intro") {
+    if (state.playing && world) state.introLeft -= dt * state.speed;
+    if (state.introLeft <= 0) endIntro();
+  } else if (state.mode === "story") {
     if (state.playing) state.left -= dt * Math.max(1, state.speed * 0.6);
     $("sBar").style.transform = `scaleX(${Math.max(0, state.left / state.pauseSec)})`;
     if (state.left <= 0) { closeStory(); state.u += 0.02; }
@@ -270,7 +296,7 @@ function frame(now) {
   if (world) {
     // room the pop-up needs above the GPU, as a fraction of the stage height (none on landscape phones)
     const cardRoom = state.mode === "story" && !state.short ? (story.offsetHeight + GAP + 2 * EDGE) / stage.clientHeight : 0;
-    world.render(dt, { u: state.u, narrow: state.narrow, short: state.short, cardRoom });
+    world.render(dt, { u: state.u, narrow: state.narrow, short: state.short, cardRoom, focusK: state.mode === "story" ? state.k : -1 });
     if (state.mode === "story") placeStory();
   }
   requestAnimationFrame(frame);

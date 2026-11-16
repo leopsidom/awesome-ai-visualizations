@@ -135,7 +135,8 @@ export function createWorld(stage, { reduced }) {
   // fitted to the stage width. While the pop-up story card is open, the picture is shifted down by half
   // the card's height (a negative view offset), so there is room for the card above the GPU.
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
-  let first = true, shift = 0;
+  let first = true, shift = 0, xOff = 0;
+  const fitBox = new THREE.Box3(), fitC = new THREE.Vector3();
   function rig(dt, view) {
     const aspect = camera.aspect;
     const fov = view.narrow ? (aspect < 0.8 ? 52 : 44) : view.short ? 42 : 38;
@@ -143,8 +144,8 @@ export function createWorld(stage, { reduced }) {
     const halfW = Math.tan(THREE.MathUtils.degToRad(fov / 2)) * aspect;
     const fit = Math.max(1, (view.narrow ? 2.0 : 2.9) / (halfW * 8.1));
     const u = view.u, n = N(u), t = T(u), wall = P(u).addScaledVector(n, -WALL);
-    const goalPos = wall.clone().addScaledVector(n, view.narrow ? 6.2 : 6.6).addScaledVector(t, -1.4).setY(2.4);
-    const goalLook = wall.clone().addScaledVector(t, 0.6).setY(view.narrow ? 1.25 : 1.3);   // aimed low: the rows sit higher, clear of the list
+    const goalPos = wall.clone().addScaledVector(n, view.narrow ? 6.2 : 6.6).addScaledVector(t, -1.4).setY(2.6);
+    const goalLook = wall.clone().addScaledVector(t, 0.6).setY(1.65);   // the centred list falls in the gap between the bottom and middle rows
     let best = heroes[0], bd = Infinity;
     for (const h of heroes) { const d = Math.abs(h.g.u - u); if (d < bd) { bd = d; best = h; } }
     const w = THREE.MathUtils.smoothstep(4.5 - bd, 0, 4.5);
@@ -162,7 +163,17 @@ export function createWorld(stage, { reduced }) {
     const want = view.cardRoom ? Math.min(0.32, view.cardRoom * 0.5) : 0;
     shift += (want - shift) * (reduced ? 1 : Math.min(1, dt * 4));
     const W = stage.clientWidth, Hs = stage.clientHeight;
-    if (shift > 0.002) camera.setViewOffset(W, Hs, 0, -Hs * shift, W, Hs); else camera.clearViewOffset();
+    // Phones: the three-quarter view leaves the milestone GPU off-centre, so slide the picture sideways until
+    // the card's on-screen centre is the stage's centre (measured without any offset, so there is no feedback).
+    let wantX = 0;
+    if (view.narrow && w > 0) {
+      camera.clearViewOffset(); camera.updateMatrixWorld();
+      fitBox.setFromObject(best.card).getCenter(fitC).project(camera);
+      wantX = ((fitC.x + 1) / 2) * W - W / 2;
+      wantX *= w;
+    }
+    xOff += (wantX - xOff) * (first || reduced ? 1 : Math.min(1, dt * 5));
+    if (shift > 0.002 || Math.abs(xOff) > 0.5) camera.setViewOffset(W, Hs, xOff, -Hs * shift, W, Hs); else camera.clearViewOffset();
   }
 
   // ---- picking and projection
@@ -214,6 +225,7 @@ export function createWorld(stage, { reduced }) {
       h.spot.intensity = 9 * h.lit;
       h.cone.material.opacity = 0.045 * h.lit;
       h.plaque.visible = Math.abs(h.g.u - view.u) < 20;   // HTML labels ignore fog: hide far plinths' plaques
+      h.plaque.element.classList.toggle("on", view.focusK === heroes.indexOf(h));
     }
     if (!reduced) for (const f of cards.fans) f.rotation.z -= dt * 9;
     renderer.render(scene, camera);
