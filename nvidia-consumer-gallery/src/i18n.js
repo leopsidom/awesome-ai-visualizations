@@ -41,6 +41,7 @@ const EN = {
   dimsEstimated: "Card size estimated from the era's standard form factor.",
   specs: { transistors: "Transistors", memory: "Memory", power: "Power", price: "Price", card: "Card", slots: "Slots" },
   transistorsWord: "transistors",
+  fmtSlots: (s) => (s == null ? "—" : s === 1 ? "1 slot" : `${s} slots`),
   heroStatus: "verified · Nov 2026 check",
   sizeEstimated: " · size estimated",
   sizeEra: " · size era-typical",
@@ -81,11 +82,12 @@ const ZH = {
   chapter: (k, kicker) => `第 ${k} 章 · ${kicker}`,
   of: (k, n) => `${k} / ${n}`,
   dimsEstimated: "显卡尺寸按当时的标准规格估算。",
-  specs: { transistors: "晶体管", memory: "显存", power: "功耗", price: "价格", card: "板卡", slots: "槽位" },
+  specs: { transistors: "晶体管", memory: "显存", power: "功耗", price: "价格", card: "尺寸", slots: "槽位" },
   transistorsWord: "晶体管",
+  fmtSlots: (s) => (s == null ? "—" : { 1: "单槽", 2: "双槽", 3: "三槽", 4: "四槽" }[s] || `${s} 槽`),
   heroStatus: "已核实 · 2026 年 11 月复核",
   sizeEstimated: " · 尺寸为估算",
-  sizeEra: " · 尺寸按年代估算",
+  sizeEra: " · 尺寸为年代典型值",
   status: { verified: "已核实", corrected: "已更正", partial: "部分核实", unverified: "未核实" },
   seconds: (s) => `${s} 秒`,
   fmtT: (m) =>
@@ -110,7 +112,11 @@ const shared = {
 };
 
 export function makeText(lang) {
-  return { ...shared, ...(lang === "zh" ? ZH : EN) };
+  const t = { ...shared, ...(lang === "zh" ? ZH : EN) };
+  // Chinese sets the numeral and its noun together ("763 亿晶体管"); English separates them.
+  t.trLine = (m) =>
+    m == null ? `— ${t.transistorsWord}` : lang === "zh" ? `${t.fmtT(m)}${t.transistorsWord}` : `${t.fmtT(m)} ${t.transistorsWord}`;
+  return t;
 }
 
 /** Story-card copy for a hero row, in the given language. */

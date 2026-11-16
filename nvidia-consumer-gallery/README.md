@@ -142,8 +142,16 @@ What to know before relying on it:
   the right kind of cooler, not replicas of any board.
 - **The "AI TOPS" stat on the RTX 5090 card (3,352) is an FP4 figure.** It is not directly comparable
   with older cards' numbers.
-- **The Chinese text was machine-written.** That covers the milestone copy here and Tapeout's `noteZh`,
-  which 76 of the 80 minor rows have; the other four fall back to English. No native reader has reviewed it.
+- **The Chinese text was machine-written and has not been reviewed by a native reader.** That covers
+  `src/i18n.js` (the panel, tooltips and formats), the `labelZh` / `storyZh` milestone copy, and every
+  `noteZh`. All 80 minor rows now carry a Chinese note; before this pass, 12 of them had none in either
+  language and fell back to a chip name.
+- **The minor-row notes are spec-derived.** For the 12 rows that had no note (RTX 2070 through RTX 5060),
+  the note restates the row's own die, memory and power figures, and says whether the die is a cut-down
+  or shared one. Nothing was added beyond what the row already records; those rows keep their
+  `unverified` / `partial` status.
+- **Chinese sets numerals and nouns together.** Transistor counts read 763 亿晶体管 rather than
+  763 亿 晶体管, and card width reads 双槽 rather than a bare 2. 万 / 亿 follow Tapeout's convention.
 
 Each hero row carries the pages used in its check in `hero.sources`.
 

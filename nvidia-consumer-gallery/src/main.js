@@ -71,7 +71,7 @@ function fillStory(k) {
   $("sStory").textContent = c.story;
   $("sSpecs").innerHTML = [
     [s.transistors, text.fmtT(g.transistors)], [s.memory, text.fmtMem(g.memory)], [s.power, text.fmtW(g.watts)],
-    [s.price, text.fmtPrice(g.price)], [s.card, text.fmtCard(h.length, h.height)], [s.slots, h.slots],
+    [s.price, text.fmtPrice(g.price)], [s.card, text.fmtCard(h.length, h.height)], [s.slots, text.fmtSlots(h.slots)],
   ].map(([a, b]) => `<div><span>${a}</span>${b}</div>`).join("");
   $("sEst").textContent = h.dimsEstimated ? text.dimsEstimated : "";
 }
@@ -202,7 +202,7 @@ function showTip(g, x, y) {
   const status = g.hero ? text.heroStatus + (g.hero.dimsEstimated ? text.sizeEstimated : "") : text.status[g.status] + text.sizeEra;
   const note = noteOf(g, state.lang);
   tip.innerHTML = `<b>${shortName(g.name)}</b><div class="m">${text.fmtDate(g.date)} · ${g.chip} · ${g.arch} · ${g.nm} nm</div>
-    <div>${text.fmtT(g.transistors)} ${text.transistorsWord} · ${text.fmtMem(g.memory)} · ${text.fmtW(g.watts)} · ${text.fmtPrice(g.price)}</div>
+    <div>${text.trLine(g.transistors)} · ${text.fmtMem(g.memory)} · ${text.fmtW(g.watts)} · ${text.fmtPrice(g.price)}</div>
     ${note ? `<div class="m">${note}</div>` : ""}<div class="st" style="color:${STATUS_COLOR[g.status] || "#999"}">${status}</div>`;
   tip.hidden = false;
   const s = stage.getBoundingClientRect();
