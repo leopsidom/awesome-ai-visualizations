@@ -10,6 +10,7 @@
  *   heatsink    small finned heatsink (RIVA era)
  *   smallfan    heatsink with a small fan (GeForce 256, GeForce 3)
  *   blower      full shroud with one radial fan at the rear (8800 GTX era)
+ *   silverblower  the same in silver aluminium, with a dark window over the heatsink (GTX Titan)
  *   axial       full shroud with two axial fans (RTX 2080 Ti)
  *   flowthrough silver shroud, two fans, short PCB (RTX 4090)
  *   doubleflow  as flowthrough, with the dark centre spine of the RTX 5090 Founders Edition
@@ -30,6 +31,7 @@ export function createCardFactory() {
     alu: M({ color: 0xa3a8ad, roughness: 0.4, metalness: 0.8 }),
     dark: M({ color: 0x30343a, roughness: 0.45, metalness: 0.6 }),
     silver: M({ color: 0xb0b6bc, roughness: 0.3, metalness: 0.85 }),
+    glass: M({ color: 0x1a1e24, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.75 }),
     fan: M({ color: 0x141518, roughness: 0.6 }),
     chip: M({ color: 0x333333, roughness: 0.4, metalness: 0.5 }),
     blade: M({ color: 0x4a5058, roughness: 0.6, metalness: 0.2 }),
@@ -83,10 +85,11 @@ export function createCardFactory() {
     } else if (cooling === "smallfan") {
       part(mat.alu, 0.5, 0.5, 0.06, 0, 0.04, zc + 0.03, g);
       fan(0.2, 0, 0.04, zc + 0.08, g, spin);
-    } else if (cooling === "blower") {
-      const d = depth - 0.04;
-      edge = part(mat.dark, L * 0.94, H * 0.86, d, 0.02 * L, 0, zc + d / 2, g);
+    } else if (cooling === "blower" || cooling === "silverblower") {
+      const d = depth - 0.04, silver = cooling === "silverblower";
+      edge = part(silver ? mat.silver : mat.dark, L * 0.94, H * 0.86, d, 0.02 * L, 0, zc + d / 2, g);
       fan(0.34, L * 0.3, -0.02, zc + depth - 0.02, g, spin);
+      if (silver) part(mat.glass, L * 0.42, H * 0.5, 0.01, -L * 0.18, 0, zc + d + 0.006, g);   // window over the heatsink
     } else {
       const d = depth - 0.025, r = H * 0.37;
       edge = part(flow ? mat.silver : mat.dark, L * 0.97, H * 0.9, d, 0, 0, zc + d / 2, g);

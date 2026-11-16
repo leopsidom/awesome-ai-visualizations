@@ -1,10 +1,11 @@
 /**
- * The 3D gallery: renderer, the hall, the eight plinths, the wall of minor GPUs, the camera rig and
+ * The 3D gallery: renderer, the hall, the nine plinths, the wall of minor GPUs, the camera rig and
  * picking. main.js owns the state and passes a `view` to render() each frame; nothing here touches
  * the panel or the story card except to read the card's size for framing.
  *
  * The hall is lit to be read, not to be moody: a hemisphere fill, a warm key from the visitor's side,
- * three warm point lights that travel with the camera to wash the stretch of wall in view, and a
+ * three warm point lights that travel with the camera to wash the stretch of wall in view, a
+ * spotlight that picks out the wall card being passed, and a
  * spotlight (with a faint visible cone) on each plinth that comes up as the camera arrives.
  */
 import * as THREE from "three";
@@ -41,6 +42,10 @@ export function createWorld(stage, { reduced }) {
   scene.add(key);
   const WASH = [-10, 0, 10];
   const wash = WASH.map(() => { const l = new THREE.PointLight(0xffe7c2, 14, 16, 1.2); scene.add(l); return l; });
+  // follows the wall card being passed during the walk
+  const focusSpot = new THREE.SpotLight(0xfff3dc, 0, 0, 0.2, 0.5, 0);
+  scene.add(focusSpot, focusSpot.target);
+  let focusIdx = -1;
 
   // ---- hall: floor, runner, wall with LED strips and shelf ledges
   const disposables = [];
@@ -112,7 +117,7 @@ export function createWorld(stage, { reduced }) {
     lab.position.set(0, (-b.height / 100) * WALL_SCALE * 0.5 - 0.12, 0.2);
     card.add(lab); lab.scale.setScalar(1 / WALL_SCALE);
     lab.position.divideScalar(WALL_SCALE);
-    return { g, lab, nearHero: HEROES.some((h) => Math.abs(h.u - g.u) < 3.4) };
+    return { g, lab, el, pos: p.clone(), nearHero: HEROES.some((h) => Math.abs(h.u - g.u) < 3.4) };
   });
 
   // ---- size
@@ -123,7 +128,9 @@ export function createWorld(stage, { reduced }) {
   const ro = new ResizeObserver(resize); ro.observe(stage); resize();
 
   // ---- camera rig
-  // Cruise: behind and above the visitor side of the path, looking across at the wall.
+  // Walk: close to the wall (6.6 units from it, 6.2 on narrow stages), a little behind the point being
+  // passed, looking at the wall at middle-tier height so all three rows stay in frame. About half the
+  // old distance, so the minor GPUs read one by one; the milestone views below are still closer.
   // Near a milestone (within 4.5 units) it blends to a three-quarter view of the card, at a distance
   // fitted to the stage width. While the pop-up story card is open, the picture is shifted down by half
   // the card's height (a negative view offset), so there is room for the card above the GPU.
@@ -135,10 +142,9 @@ export function createWorld(stage, { reduced }) {
     if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
     const halfW = Math.tan(THREE.MathUtils.degToRad(fov / 2)) * aspect;
     const fit = Math.max(1, (view.narrow ? 2.0 : 2.9) / (halfW * 8.1));
-    const cruise = Math.max(1, (view.narrow ? 4.2 : 6) / (halfW * 10));
-    const u = view.u, p = P(u), n = N(u), t = T(u);
-    const goalPos = p.clone().addScaledVector(n, 9.5 * cruise).addScaledVector(t, -2.5).setY((view.narrow ? 3.3 : 3.8) + (cruise - 1) * 2.2);
-    const goalLook = p.clone().addScaledVector(n, -1.8).addScaledVector(t, 1.5).setY(view.narrow ? 2.5 : 1.9);
+    const u = view.u, n = N(u), t = T(u), wall = P(u).addScaledVector(n, -WALL);
+    const goalPos = wall.clone().addScaledVector(n, view.narrow ? 6.2 : 6.6).addScaledVector(t, -1.4).setY(2.4);
+    const goalLook = wall.clone().addScaledVector(t, 0.6).setY(view.narrow ? 1.25 : 1.3);   // aimed low: the rows sit higher, clear of the list
     let best = heroes[0], bd = Infinity;
     for (const h of heroes) { const d = Math.abs(h.g.u - u); if (d < bd) { bd = d; best = h; } }
     const w = THREE.MathUtils.smoothstep(4.5 - bd, 0, 4.5);
@@ -184,8 +190,23 @@ export function createWorld(stage, { reduced }) {
 
   function render(dt, view) {
     rig(dt, view);
-    const near = view.narrow ? 5 : 8;
-    for (const w of wallItems) w.lab.visible = !w.nearHero && Math.abs(w.g.u - view.u) < near && w.g.u <= view.u + 2.5;
+    // the wall card being passed: the last one reached, unless a milestone is closer
+    let cur = -1;
+    for (let i = 0; i < wallItems.length; i++) if (wallItems[i].g.u <= view.u + 1e-6) cur = i;   // same rule as the list in main.js
+    const nearestHero = Math.min(...heroes.map((h) => Math.abs(h.g.u - view.u)));
+    if (cur >= 0 && (nearestHero < 3 || view.u - wallItems[cur].g.u > 4)) cur = -1;
+    wallItems.forEach((w, i) => {
+      w.lab.visible = false;   // names are read from the centred list instead: labels drifting with the camera were hard to read
+      w.el.classList.toggle("on", i === cur);
+    });
+    // the pool jumps to each new card and fades in, rather than sliding across the wall between rows
+    if (cur !== focusIdx) { focusIdx = cur; focusSpot.intensity = 0; }
+    if (cur >= 0) {
+      const c = wallItems[cur], cn = N(c.g.u);
+      focusSpot.target.position.copy(c.pos);
+      focusSpot.position.copy(c.pos).addScaledVector(cn, 3.2).setY(c.pos.y + 0.9);
+    }
+    focusSpot.intensity += ((cur >= 0 ? 7 : 0) - focusSpot.intensity) * (reduced ? 1 : Math.min(1, dt * 5));
     wash.forEach((l, i) => { const u = view.u + WASH[i], p = P(u).addScaledVector(N(u), -WALL + 2.4); l.position.set(p.x, 3.6, p.z); });
     for (const h of heroes) {
       const on = Math.abs(h.g.u - view.u) < 6 || view.u > h.g.u ? 1 : 0.25;

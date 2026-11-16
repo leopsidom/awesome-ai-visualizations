@@ -1,8 +1,8 @@
 /**
  * GeForce Gallery: thirty years of NVIDIA consumer GPUs as a gallery walk.
  *
- * The camera walks a curved path. Eight milestone cards stand on spotlit plinths at their true
- * size; the other 80 consumer GPUs hang on the wall behind and scroll up the left of the stage as
+ * The camera walks a curved path. Nine milestone cards stand on spotlit plinths at their true
+ * size; the other 79 consumer GPUs hang on the wall behind and scroll up the left of the stage as
  * a list. At each milestone the walk pauses and a see-through story card pops up out of the GPU,
  * anchored just above it like a pop-up menu, with an arrow pointing at the card.
  *
@@ -53,9 +53,11 @@ function syncList(rebuild = false) {
   for (let i = 0; i < GPUS.length; i++) if (!GPUS[i].hero && GPUS[i].u <= state.u + 1e-6) idx = i;
   if (idx === listed && !rebuild) return;
   listed = idx;
-  const max = state.narrow || state.short ? 3 : 8;
+  // Centred under the wall: the newest line is the card being passed (the one in the spotlight), set larger;
+  // the lines above it fade out. Fewer lines than before, so it reads at a glance.
+  const max = state.narrow || state.short ? 2 : 4;
   const rows = GPUS.filter((g) => !g.hero && g.u <= state.u + 1e-6).slice(-max);
-  list.innerHTML = rows.map((g, i) => `<div class="row" style="opacity:${(0.3 + (0.7 * (i + 1)) / rows.length).toFixed(2)}">
+  list.innerHTML = rows.map((g, i) => `<div class="row${i === rows.length - 1 ? " now" : ""}" style="opacity:${i === rows.length - 1 ? 1 : (0.25 + (0.45 * (i + 1)) / rows.length).toFixed(2)}">
       <span class="sw" style="background:${ARCH[g.arch]}"></span><span class="d">${g.date.slice(0, 7)}</span><span class="n">${g.name}</span>
       <span class="t">${noteOf(g, state.lang) || `${g.chip} · ${g.arch}`}</span></div>`).join("");
 }
@@ -73,7 +75,6 @@ function fillStory(k) {
     [s.transistors, text.fmtT(g.transistors)], [s.memory, text.fmtMem(g.memory)], [s.power, text.fmtW(g.watts)],
     [s.price, text.fmtPrice(g.price)], [s.card, text.fmtCard(h.length, h.height)], [s.slots, text.fmtSlots(h.slots)],
   ].map(([a, b]) => `<div><span>${a}</span>${b}</div>`).join("");
-  $("sEst").textContent = h.dimsEstimated ? text.dimsEstimated : "";
 }
 function openStory(k) {
   state.mode = "story"; state.k = k; state.left = state.pauseSec; state.shown.add(k);
@@ -133,8 +134,8 @@ function restart() { closeStory(); state.u = U_START; state.shown.clear(); syncL
 function setPlaying(p) {
   state.playing = p;
   $("bPlay").textContent = p ? text.pause : text.play;
-  $("miniPlay").textContent = $("sHold").textContent = p ? "❚❚" : "▶";
-  $("miniPlay").title = $("sHold").title = text.hold;
+  $("miniPlay").textContent = p ? "❚❚" : "▶";
+  $("miniPlay").title = text.hold;
 }
 function markJump() { [...jump.children].forEach((li, i) => li.classList.toggle("active", state.mode === "story" && state.k === i)); }
 function buildJump() {
@@ -158,9 +159,8 @@ function applyLang(lang, persist = true) {
   document.querySelectorAll("[data-t]").forEach((el) => { el.innerHTML = text[el.dataset.t]; });
   $("lang-en").classList.toggle("on", lang === "en");
   $("lang-zh").classList.toggle("on", lang === "zh");
-  $("sHint").innerHTML = text.hint;
-  $("bPrev").title = $("sPrev").title = text.prev;
-  $("bNext").title = $("sNext").title = text.next;
+  $("bPrev").title = text.prev;
+  $("bNext").title = text.next;
   $("closePanel").title = text.hidePanel;
   $("vPause").textContent = text.seconds(state.pauseSec);
   setPlaying(state.playing); buildJump(); syncList(true);
@@ -177,9 +177,9 @@ function togglePanel() {
   document.body.classList.toggle("panel-hidden", panel.classList.contains("hidden"));
 }
 
-$("bPlay").onclick = $("miniPlay").onclick = $("sHold").onclick = () => setPlaying(!state.playing);
-$("bPrev").onclick = $("sPrev").onclick = prev;
-$("bNext").onclick = $("sNext").onclick = next;
+$("bPlay").onclick = $("miniPlay").onclick = () => setPlaying(!state.playing);
+$("bPrev").onclick = prev;
+$("bNext").onclick = next;
 $("bRestart").onclick = restart;
 $("speed").oninput = (e) => { state.speed = +e.target.value; $("vSpeed").textContent = `${state.speed}×`; };
 $("pause").oninput = (e) => { state.pauseSec = +e.target.value; $("vPause").textContent = text.seconds(state.pauseSec); };
@@ -188,7 +188,7 @@ $("lang-en").onclick = () => applyLang("en");
 $("lang-zh").onclick = () => applyLang("zh");
 $("closePanel").onclick = $("openPanel").onclick = togglePanel;
 addEventListener("keydown", (e) => {
-  if (e.target.closest("input, textarea, select, [contenteditable]") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest?.("input, textarea, select, [contenteditable]") || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === "Space") { e.preventDefault(); setPlaying(!state.playing); }
   else if (e.key === "ArrowRight") { e.preventDefault(); next(); }
   else if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }

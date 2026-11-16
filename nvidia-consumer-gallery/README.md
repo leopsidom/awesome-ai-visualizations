@@ -1,9 +1,9 @@
 # GeForce Gallery
 
 Thirty years of NVIDIA consumer GPUs as a gallery walk, in Three.js. The camera follows a curved path
-through a lit hall. Eight milestone cards stand on spotlit plinths at their true size, from the NV1 (1995)
-to the RTX 5090 (2025). The other 80 consumer GPUs hang on the wall behind them and scroll up the left of
-the stage as a list. At each milestone the walk pauses and a see-through story card pops up out of the GPU,
+through a lit hall. Nine milestone cards stand on spotlit plinths at their true size, from the NV1 (1995)
+to the RTX 5090 (2025). The other 79 consumer GPUs hang on the wall behind them, and a short list centred
+below the wall names the one being passed. At each milestone the walk pauses and a see-through story card pops up out of the GPU,
 anchored just above it like a pop-up menu, with an arrow pointing at the card. The page reads in English or Chinese (简体中文); the Chinese title is GeForce 陈列馆.
 
 It is the consumer lane of [Tapeout](../nvidia-gpu-skyline/) given a scene of its own. The data-center
@@ -33,8 +33,8 @@ browser can pair a fresh `index.html` with stale cached scripts. `http.server` a
 long-lived cache headers, so browsers guess, and Chrome's normal reload can reuse cached scripts. This
 happened once during the build: the new page with the old `main.js` left the story card in the top-left
 corner.
-Playback starts by itself. At 1× the walk takes about 57 s of travel plus a 7 s pause at each of the eight
-milestones, about 1 min 53 s in all.
+Playback starts by itself. At 1× the walk takes about 61 s of travel plus a 7 s pause at each of the nine
+milestones, about 2 min 4 s in all.
 
 ## Controls
 
@@ -48,14 +48,15 @@ milestones, about 1 min 53 s in all.
 | tap a card (touch)      | The same tooltip, for 3.5 s                                        |
 | click / tap a milestone | Jump to it and open its story card                                 |
 
-The story card has its own ◀ ❚❚ ▶ buttons, so a phone needs no keyboard. The side panel also holds:
+The story card holds only the story: every control lives in the side panel. On a phone the panel starts
+hidden and opens from the `Controls` button, next to a play / pause button. The side panel holds:
 
 - **Language:** `EN` / `中文`. It switches in place, keeping the camera, the playback position and any open
   card. The choice is kept in `localStorage` (`geforce-gallery-lang`) and written to the URL as `?lang=`.
 - **Playback:** play / pause, previous, next and restart. There is also a speed slider (0.5× to 3×) and
   the story pause (3 to 15 s, 7 s by default).
 - **Story card opacity:** 40% to 100%, 80% by default, kept in `localStorage` (`geforce-gallery-card-opacity`).
-- **Milestones:** the eight cards as a jump list.
+- **Milestones:** the nine cards as a jump list.
 
 The `×` in the panel's corner does the same as `H`. With the panel hidden, a play button and a
 `Controls` button sit in the corner of the stage.
@@ -70,18 +71,18 @@ The layout is re-checked on every resize, so rotating a phone or closing the pan
 | Narrow (portrait)   | stage under 760 px wide, or taller than wide  | sheet below the stage, starts hidden | pop-up above the GPU, 80% of the stage width; the year counter hides |
 | Short (landscape)   | wider than tall but under 500 px high         | 270 px column, starts hidden     | pop-up to the GPU's right (arrow pointing left), below the stage buttons |
 
-On narrow and short stages the list shows three lines without notes, and the camera widens its field of
+On narrow and short stages the list shows two lines (only the newest with its note), and the camera widens its field of
 view. Its distance is fitted to the stage width, so a whole card stays in frame on a 390 px phone.
 
 ## The data
 
 `src/data.js` holds the 88 consumer rows of `../nvidia-gpu-skyline/src/data.js` in release order, and
-the 16 architecture colours they use. The eight milestone rows carry the values from a fresh check made in
-November 2026. The other 80 rows are Tapeout's, unchanged.
+the 16 architecture colours they use. The nine milestone rows carry the values from a fresh check made in
+November 2026 (the GTX Titan was added later the same month). The other 79 rows are Tapeout's.
 
 | Check status | Rows | Which                                                                  |
 | ------------ | ---: | ---------------------------------------------------------------------- |
-| Verified     |   41 | the 8 milestones, and 33 minor rows Tapeout had verified                |
+| Verified     |   41 | the 9 milestones, and 32 minor rows Tapeout had verified                |
 | Corrected    |    9 | minor rows Tapeout corrected                                           |
 | Partial      |    7 | minor rows resting partly on spec aggregators                          |
 | Unverified   |   31 | minor rows written from memory for Tapeout and not yet checked         |
@@ -97,13 +98,14 @@ The hover tooltip shows each row's status in its own colour.
 | 3 | GeForce 256        | 1999-10-11   | Creative 3D Blaster Annihilator          | 190 × 107 ¹ |     1 | small fan         |
 | 4 | GeForce 3          | 2001-02-27   | ELSA Gladiac 920                         | 173 × 108   |     1 | small fan         |
 | 5 | GeForce 8800 GTX   | 2006-11-08   | NVIDIA reference board                   | 270 × 111 ¹ |     2 | blower            |
-| 6 | GeForce RTX 2080 Ti| 2018-09-27   | Founders Edition                         | 267 × 116   |     2 | two axial fans    |
-| 7 | GeForce RTX 4090   | 2022-10-12   | Founders Edition                         | 304 × 137   |     3 | flow-through      |
-| 8 | GeForce RTX 5090   | 2025-01-30   | Founders Edition                         | 304 × 137   |     2 | double flow-through |
+| 6 | GeForce GTX Titan  | 2013-02-21   | NVIDIA reference design                  | 267 × 111   |     2 | silver blower with a window |
+| 7 | GeForce RTX 2080 Ti| 2018-09-27   | Founders Edition                         | 267 × 116   |     2 | two axial fans    |
+| 8 | GeForce RTX 4090   | 2022-10-12   | Founders Edition                         | 304 × 137   |     3 | flow-through      |
+| 9 | GeForce RTX 5090   | 2025-01-30   | Founders Edition                         | 304 × 137   |     2 | double flow-through |
 
 ¹ An estimate. For the NV1, RIVA 128 and GeForce 256 the length comes from weak sources or the standard
 length of the era, and the height is the standard full height. For the 8800 GTX the length is sourced and
-the height is estimated. The story card says so under these four, and the tooltip marks them "size estimated".
+the height is estimated. The hover tooltip marks these four "size estimated"; the story card doesn't repeat it.
 
 Values changed against Tapeout:
 
@@ -112,6 +114,7 @@ Values changed against Tapeout:
 | NV1          | Transistors — → 1 M; memory — → 1 MB; launch price — → $249                  |
 | RIVA 128     | Transistors 4 M → 3.5 M; price — → about $200 (a partner board's street price) |
 | GeForce 3    | Status partial → verified; no value changed                                  |
+| GTX Titan    | Date 2013-02-19 → 2013-02-21 (19th announced, 21st launch reviews, retail 25th) |
 | RTX 2080 Ti  | Date 2018-09-20 → 2018-09-27 (the Ti shipped a week after the RTX 2080)       |
 | RTX 4090     | Die 608 → 608.5 mm²                                                          |
 
@@ -122,6 +125,11 @@ The story text was reworded where a claim in the original brief went further tha
 - **GeForce 256:** NVIDIA *marketed* it as the "world's first GPU". 3Dlabs had used the term in 1997.
 - **8800 GTX:** the first CUDA GPU. CUDA was announced at its launch in November 2006, and the public SDK
   followed in February 2007.
+- **GTX Titan:** it is *not* "the beginning of high-end consumer GPUs": the 8800 Ultra ($829) and the
+  dual-GPU GTX 690 ($999) came first. It was the first *single-GPU* GeForce at $999, with the GK110 chip of
+  the Tesla K20X cards in Oak Ridge's Titan supercomputer. Its 1.3 TFLOPS double precision is NVIDIA's
+  figure; the K20X is rated 1.31 TFLOPS. Deep-learning use is a later Titan X story, so its card doesn't
+  claim it. NVIDIA calls the RTX 3090 "TITAN class" on its product page.
 - **RTX 20:** it "brought RT Cores to gaming". The Quadro RTX workstation cards had them a week earlier.
 - **RTX 4090:** the AI angle rests on the US export ban to China (October 2023). Only hobbyist and
   benchmark sites call it a local-AI card.
@@ -140,11 +148,12 @@ What to know before relying on it:
   dimensions, and the tooltip says "size era-typical".
 - **The card models are sketches of the form factor.** They are boxes and discs at the right size with
   the right kind of cooler, not replicas of any board.
-- **The "AI TOPS" stat on the RTX 5090 card (3,352) is an FP4 figure.** It is not directly comparable
-  with older cards' numbers.
+- **The RTX 5090 card's headline is its 21,760 CUDA cores (170× the 8800 GTX's 128)**, not NVIDIA's
+  3,352 "AI TOPS". That figure is counted at 4-bit (FP4) precision, and set against the RTX 4090's 1,321
+  it would overstate the jump.
 - **The Chinese text was machine-written and has not been reviewed by a native reader.** That covers
   `src/i18n.js` (the panel, tooltips and formats), the `labelZh` / `storyZh` milestone copy, and every
-  `noteZh`. All 80 minor rows now carry a Chinese note; before this pass, 12 of them had none in either
+  `noteZh`. All 79 minor rows now carry a Chinese note; before this pass, 12 of them had none in either
   language and fell back to a chip name.
 - **The minor-row notes are spec-derived.** For the 12 rows that had no note (RTX 2070 through RTX 5060),
   the note restates the row's own die, memory and power figures, and says whether the die is a cut-down
@@ -174,8 +183,9 @@ Each hero row carries the pages used in its check in `hero.sources`.
   is 24 units long, and its minor GPUs are spread evenly inside it. The year counter interpolates between
   real release dates, so it speeds up and slows down instead.
 - **Travel time grows with a chapter's size:** 4 s plus 0.32 s per minor GPU, capped at 16 s at 1×. The
-  2006–2018 chapter has 39 minor GPUs and takes 16 s; the 1995–1997 chapter has none and takes 4 s. That
-  keeps the list readable.
+  2006–2013 and 2013–2018 chapters have 19 minor GPUs each and take about 10 s; the 1995–1997 chapter has
+  none and takes 4 s. That keeps the list readable. Before the GTX Titan was added, 2006–2018 was one
+  chapter of 39 GPUs at the 16 s cap.
 - **True size is the point.** A card's length and height are its measured millimetres (1 unit = 10 cm),
   and its thickness is its slot count × 20.32 mm. The outline grows only 1.7× in thirty years, from 175 to
   304 mm; the cooler does the growing. The camera looks at each card in three-quarter view so the
@@ -197,9 +207,22 @@ Each hero row carries the pages used in its check in `hero.sources`.
   three warm point lights that travel with the camera to wash the stretch of wall in view. Each plinth has
   a spotlight with a faint additive cone that comes up as the camera arrives. An earlier, darker draft hid
   the wall cards; this is the result of that feedback.
-- **Wall labels appear only near the current year:** within 8 units on a desktop and 5 on a phone. Labels
-  on cards just behind a milestone are hidden, because HTML labels are not occluded by the 3D scene. For the
-  same reason a plinth's plaque shows only within 20 units, or far plaques pile up across the curve.
+- **The walk stays close to the wall.** Between milestones the camera runs 6.6 units from the wall (6.2 on
+  narrow stages), aimed a little below the middle row so all three rows sit clear of the list. A warm
+  spotlight picks out the card being passed: the last one reached, which is also the newest line in the
+  list. The light jumps to each new card and fades in rather than sliding across the wall. It switches off
+  within 3 units of a milestone, where the milestone view takes over. The wall cards are hung at 55% scale,
+  so even this close they read smaller on screen than the milestone cards.
+- **Names are read from a still list, not from the wall.** An earlier version put a name label under each
+  wall card. The labels moved with the camera and were hard to read, so they are hidden during the walk.
+  Instead the list sits centred near the bottom of the stage, on a soft dark backing: four lines on a
+  desktop and two on a phone, with the newest (the card in the spotlight) set larger with its note. On
+  phones only that newest line keeps its note. It sits 9% of the stage height up from the bottom (18% on
+  phones, 10% in landscape), so a screen recording posted to a video app keeps it clear of the captions
+  and buttons those apps overlay. The camera is aimed low enough that all three rows of cards stay above it. It dims to 12%
+  while a milestone story card is open, and hides on phones. Hover or tap any wall card for its tooltip.
+  A plinth's plaque shows only within 20 units, because HTML labels are not hidden by the 3D scene and far
+  plaques would pile up across the curve.
 - **One state, several views.** `main.js` owns the state and passes a small `view` object to
   `world.render()` each frame. The panel, keyboard, story buttons and clicks in the scene all go through
   the same `goto` / `setPlaying` calls.
@@ -226,9 +249,9 @@ Each hero row carries the pages used in its check in `hero.sources`.
 
 - **In Chrome (desktop), with Three.js 0.185.1 from unpkg:**
   - The page loads with no console errors.
-  - A full run at 3× with 3 s pauses opened all eight story cards in order, at 1995, 1997, 1999, 2001,
-    2006, 2018, 2022 and 2025. It stopped at the end with the play button showing "Play". This was run
-    again after the change to the anchored pop-up.
+  - A full run at 3× with 3 s pauses opened all nine story cards in order, at 1995, 1997, 1999, 2001,
+    2006, 2013, 2018, 2022 and 2025. It stopped at the end with the play button showing "Play". This was
+    run again after the anchored pop-up and after adding the GTX Titan.
   - Jumping from the milestone list, switching language, the opacity slider and hiding the panel were
     exercised by script and by eye.
 - **Layouts** were checked in same-origin iframes at 390×844 (portrait phone), 844×390 (landscape phone)
