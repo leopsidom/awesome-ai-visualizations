@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>GeForce Gallery — thirty years of NVIDIA consumer GPUs</title>
+
+    <!-- The ./src/ entries pin every module to a version, so a browser never mixes a fresh index.html with
+         stale cached scripts (http.server and GitHub Pages send no long-lived cache headers, so browsers
+         guess). When you change anything under src/, bump the ?v= here and on the main.js tag below. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/",
+          "./src/cards.js": "./src/cards.js?v=2026-11-16x",
+          "./src/data.js": "./src/data.js?v=2026-11-16x",
+          "./src/i18n.js": "./src/i18n.js?v=2026-11-16x",
+          "./src/layout.js": "./src/layout.js?v=2026-11-16x",
+          "./src/world.js": "./src/world.js?v=2026-11-16x"
+        }
+      }
+    </script>
+
+    <style>
+      :root {
+        --green: #76b900; --ink: #eef0f2; --dim: #9aa1aa; --bg: #0e1116; --panel: #12161c; --line: #232a33;
+        --card-a: 0.8; /* story-card opacity, set from the panel */
+        --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+      kbd { background: #1c222b; border: 1px solid #2d3540; border-radius: 3px; padding: 0 4px; font: 11px var(--font); }
+
+      /* Stage and panel side by side (stacked on narrow screens). The panel never covers the scene. */
+      #app { display: flex; height: 100%; height: 100dvh; width: 100vw; }
+      #stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; touch-action: manipulation; }
+      #stage canvas { display: block; }
+      .labels { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+      body.booting #stage::after { content: ""; position: absolute; inset: 0; background: var(--bg); }
+
+      /* ---- panel */
+      #panel { flex: 0 0 300px; background: var(--panel); border-left: 1px solid var(--line); padding: 16px 18px 20px; overflow-y: auto; position: relative; }
+      #panel.hidden { display: none; }
+      #panel h1 { font-size: 16px; margin: 0 0 2px; }
+      #panel .sub { color: var(--dim); font-size: 12px; margin-bottom: 4px; }
+      #panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim); margin: 16px 0 8px; font-weight: 600; }
+      #closePanel { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: var(--dim); font-size: 22px; cursor: pointer; padding: 4px 8px; }
+      #closePanel:hover { color: var(--ink); }
+      .row { display: flex; gap: 6px; flex-wrap: wrap; }
+      .btn { background: #1c222b; color: var(--ink); border: 1px solid #2d3540; border-radius: 7px; padding: 7px 11px; cursor: pointer; font: 13px var(--font); }
+      .btn:hover { border-color: var(--green); }
+      .btn.primary, .btn.on { background: var(--green); color: #081000; border-color: var(--green); font-weight: 600; }
+      .seg { display: inline-flex; border: 1px solid #2d3540; border-radius: 8px; overflow: hidden; }
+      .seg .btn { border: 0; border-radius: 0; }
+      label.sl { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); margin: 10px 0 2px; }
+      input[type="range"] { width: 100%; accent-color: var(--green); }
+      #jump { list-style: none; padding: 0; margin: 0; }
+      #jump li { padding: 6px 8px; border-radius: 6px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+      #jump li:hover { background: #1c222b; }
+      #jump li.active { background: #1f2e12; }
+      #jump .y { color: var(--green); width: 34px; flex: none; font-variant-numeric: tabular-nums; }
+      #jump .k { color: var(--dim); font-size: 11px; display: block; }
+      .note { color: var(--dim); font-size: 11.5px; margin-top: 14px; }
+      #stageBtns { position: absolute; top: 12px; right: 12px; z-index: 20; display: none; gap: 6px; }
+      body.panel-hidden #stageBtns { display: flex; }
+
+      /* ---- HUD and the list of minor GPUs (part of the visualization, so drawn over the scene) */
+      #hud { position: absolute; top: 14px; left: 18px; z-index: 10; pointer-events: none; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); transition: opacity 0.3s; }
+      #year { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+      #month { color: var(--dim); font-size: 13px; margin-top: 4px; }
+      #chapter { color: var(--green); font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; margin-top: 8px; transition: opacity 0.3s; }
+      body.story-open #chapter { opacity: 0; }
+      /* centred under the wall; the newest line is the card in the spotlight. Dims while a milestone is open. */
+      /* a five-row window onto the full strip of minor GPUs (see syncList in main.js); fades at top and bottom */
+      #list { --row: 46px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(620px, 72%); z-index: 9; pointer-events: none;
+        height: calc(var(--row) * 5); overflow: hidden; padding: 0 18px; text-align: center; border-radius: 12px;
+        background: radial-gradient(ellipse at 50% 50%, rgba(10, 12, 16, 0.6), rgba(10, 12, 16, 0) 72%);
+        -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent); mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
+      #list .track { transform: translateY(calc(var(--shift, 2) * var(--row))); transition: transform 0.7s cubic-bezier(.22,.8,.3,1); }
+      #list .track.jump { transition: none; }
+      #list .row { height: var(--row); display: flex; flex-direction: column; justify-content: center; align-items: center; flex-wrap: nowrap;
+        gap: 1px; line-height: 1.25;   /* title and note sit together; the row's spare height falls between items */
+        opacity: 0.18; transform: scale(0.9); transition: opacity 0.5s ease, transform 0.5s ease; }
+      #list .row[data-d="2"] { opacity: 0.32; transform: scale(0.92); }
+      #list .row[data-d="1"] { opacity: 0.6; transform: scale(0.96); }
+      #list .row.now { opacity: 1; transform: scale(1.12); }
+      #list .l1, #list .t { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #list .l1 { font-size: 14px; }
+      #list .row.now .d { color: var(--green); }
+      #list .row.now .t { color: #c5ccd4; }
+      /* eases out when a milestone takes focus, eases back in (after a beat) when the walk resumes */
+      #list { transition: opacity 0.8s cubic-bezier(.2,.8,.2,1) 0.2s, transform 0.8s cubic-bezier(.2,.8,.2,1) 0.2s; }
+      body.story-open #list { opacity: 0; transform: translate(-50%, calc(-50% + 18px)) scale(0.97); transition: opacity 0.45s ease-in, transform 0.45s ease-in; }
+      #list .d { color: var(--dim); margin-right: 6px; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+      #list .n { font-weight: 600; }
+      #list .t { color: var(--dim); font-size: 11.5px; }
+      .sw { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+
+      /* ---- story card: a see-through pop-up anchored to the focused GPU (placed by main.js every frame) */
+      #story { position: absolute; z-index: 15; top: 16px; left: 16px; width: min(560px, 62%); min-width: 380px;
+        background: rgba(16, 20, 26, var(--card-a)); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+        border: 1px solid rgba(80, 92, 108, calc(var(--card-a) * 0.9)); border-top: 3px solid var(--green); border-radius: 10px;
+        padding: 14px 18px 10px; max-height: calc(56% - 16px); overflow-y: auto; text-shadow: 0 1px 3px rgba(0, 0, 0, calc(1 - var(--card-a)));
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+      /* the arrow: a small rotated square whose centre sits on the card's edge, pointing at the GPU */
+      #caret { position: absolute; z-index: 16; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none;
+        background: rgba(16, 20, 26, var(--card-a)); border: 1px solid rgba(80, 92, 108, calc(var(--card-a) * 0.9)); transform: rotate(45deg); }
+      #caret.down { border-top: 0; border-left: 0; }
+      #caret.left { border-top: 0; border-right: 0; }
+      #sKicker { color: var(--green); font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 700; }
+      #story .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+      #sName { margin: 2px 0 0; font-size: 22px; }
+      #sWhen { color: var(--dim); font-size: 12px; }
+      #story .cols { display: grid; grid-template-columns: 1fr 190px; gap: 16px; margin-top: 8px; }
+      #story .stat { display: flex; align-items: baseline; gap: 10px; margin: 0 0 6px; }
+      #sStat { font-size: 32px; color: var(--green); letter-spacing: -0.02em; white-space: nowrap; line-height: 1; }
+      #sStatLabel { color: var(--dim); font-size: 12px; line-height: 1.3; }
+      #sStory { margin: 4px 0; font-size: 13.5px; }
+      #sSpecs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px; font-size: 12px; align-content: start; }
+      #sSpecs span { color: var(--dim); display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+      #story .bar { height: 3px; background: rgba(60, 70, 82, 0.8); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+      #sBar { display: block; height: 100%; background: var(--green); transform-origin: left; }
+
+      /* ---- labels and tooltip */
+      /* a milestone's plaque shows only while it is focused: eases in with the story card, out as the walk resumes */
+      .plaque { color: var(--ink); font-size: 11px; text-align: center; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap;
+        opacity: 0; transition: opacity 0.45s ease-in; }
+      .plaque.on { opacity: 1; transition: opacity 0.8s cubic-bezier(.2,.8,.2,1) 0.2s; }
+      .plaque b { color: var(--green); display: block; font-size: 12px; }
+      .wlab { color: #cfd5dc; font-size: 10px; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap; }
+      .wlab i { font-style: normal; color: var(--dim); margin-right: 4px; }
+      .wlab.on { color: #fff; font-size: 11.5px; font-weight: 600; background: rgba(10, 12, 16, 0.6); padding: 2px 6px; border-radius: 4px; }
+      .wlab.on i { color: var(--green); }
+      #tip { position: absolute; z-index: 30; pointer-events: none; background: rgba(14, 17, 22, 0.96); border: 1px solid #2d3540; border-radius: 8px; padding: 8px 10px; font-size: 12px; max-width: 260px; }
+      #tip b { font-size: 13px; }
+      #tip .m { color: var(--dim); }
+      #tip .st { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+      #fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); padding: 24px; text-align: center; z-index: 25; }
+
+      /* ---- narrow: portrait phones, tablets, small windows */
+      body.narrow #app { flex-direction: column; }
+      body.narrow #panel { flex: 0 0 auto; max-height: 46%; border-left: 0; border-top: 1px solid var(--line); padding: 12px 14px 14px; }
+      body.narrow #panel .note, body.narrow #panel .sub { display: none; }
+      body.narrow #jump { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+      body.narrow #jump li { padding: 4px 6px; }
+      body.narrow #hud { top: 10px; left: 12px; }
+      body.narrow #year { font-size: 30px; }
+      body.narrow #month { font-size: 12px; margin-top: 2px; }
+      body.narrow #chapter { font-size: 10.5px; margin-top: 4px; }
+      body.narrow.story-open #hud { opacity: 0; }
+      body.narrow #stageBtns { top: auto; bottom: 10px; right: 10px; }
+      /* phones sit higher (18% of the stage) so the list stays clear of the captions and buttons video apps overlay */
+      body.narrow #list { --row: 40px; width: calc(100% - 24px); padding: 0 10px; }
+      body.narrow #list .l1 { font-size: 12.5px; }
+      body.narrow #list .t { font-size: 10.5px; }
+      body.narrow #story { width: 80%; min-width: 0; max-height: 52%; padding: 10px 12px 8px; }
+      body.narrow #sName { font-size: 18px; }
+      body.narrow #story .cols { grid-template-columns: 1fr; gap: 6px; }
+      body.narrow #sStat { font-size: 24px; }
+      body.narrow #sStory { font-size: 12.5px; }
+      body.narrow #sSpecs { grid-template-columns: repeat(3, 1fr); font-size: 11px; gap: 3px 8px; }
+
+      /* ---- short: landscape phones (story card as a column on the right, GPU on the left) */
+      body.short #story { width: min(340px, 46%); min-width: 0; max-height: calc(100% - 60px); padding: 10px 12px 8px; }
+      body.short #sName { font-size: 18px; }
+      body.short #story .cols { grid-template-columns: 1fr; gap: 6px; }
+      body.short #sStat { font-size: 24px; }
+      body.short #sStory { font-size: 12.5px; }
+      body.short #sSpecs { grid-template-columns: repeat(3, 1fr); font-size: 11px; gap: 3px 8px; }
+      body.short #hud { top: 10px; left: 12px; }
+      body.short #year { font-size: 28px; }
+      body.short #chapter { font-size: 10.5px; margin-top: 4px; }
+      body.short #list { --row: 32px; width: min(520px, 60%); padding: 0 12px; }
+      body.short #list .l1 { font-size: 12px; }
+      body.short #list .t { font-size: 10px; }
+      body.short #panel { flex-basis: 270px; padding: 10px 14px; }
+      body.short #panel .note, body.short #panel .sub { display: none; }
+
+      /* ---- title frame before the walk (body.intro, set by main.js) */
+      #intro { position: absolute; inset: 0; z-index: 18; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; padding: 24px; pointer-events: none; opacity: 0; transform: translateY(8px);
+        background: radial-gradient(ellipse at 50% 50%, rgba(8, 10, 13, 0.82), rgba(8, 10, 13, 0.45) 75%);
+        transition: opacity 0.9s ease, transform 0.9s ease; }
+      body.intro #intro { opacity: 1; transform: none; transition: opacity 0.6s ease, transform 0.6s ease; }
+      #intro .k { color: var(--green); font-size: 13px; text-transform: uppercase; letter-spacing: 0.22em; font-weight: 700; }
+      #intro h2 { margin: 8px 0 6px; font-size: clamp(42px, 9vw, 88px); font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+      #intro .s { font-size: clamp(17px, 3.6vw, 26px); font-weight: 600; }
+      #intro .n { color: var(--dim); font-size: clamp(12px, 2.4vw, 14px); margin-top: 14px; }
+      body.intro #hud, body.intro #list { opacity: 0; }
+
+      @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    </style>
+  </head>
+  <body class="booting">
+    <div id="app">
+      <main id="stage">
+        <div id="hud"><div id="year">1995</div><div id="month"></div><div id="chapter"></div></div>
+        <div id="intro" aria-live="polite"><div class="k" data-t="introKicker"></div><h2 data-t="introTitle"></h2><div class="s" data-t="introSub"></div><div class="n" data-t="introNote"></div></div>
+        <div id="list" aria-live="off"></div>
+        <section id="story" hidden aria-live="polite">
+          <div id="sKicker"></div>
+          <div class="head"><h3 id="sName"></h3><div id="sWhen"></div></div>
+          <div class="cols">
+            <div><div class="stat"><b id="sStat"></b><span id="sStatLabel"></span></div><p id="sStory"></p></div>
+            <div id="sSpecs"></div>
+          </div>
+          <div class="bar"><i id="sBar"></i></div>
+        </section>
+        <div id="caret" hidden></div>
+        <div id="tip" hidden></div>
+        <div id="stageBtns"><button class="btn" id="miniPlay">❚❚</button><button class="btn" id="openPanel" data-t="controls"></button></div>
+        <div id="fallback" hidden data-t="fallback"></div>
+      </main>
+
+      <aside id="panel">
+        <button id="closePanel" aria-label="Close">×</button>
+        <h1 data-t="title"></h1>
+        <div class="sub" data-t="subtitle"></div>
+
+        <h2 data-t="language"></h2>
+        <div class="seg"><button class="btn" id="lang-en">EN</button><button class="btn" id="lang-zh">中文</button></div>
+
+        <h2 data-t="playback"></h2>
+        <div class="row">
+          <button class="btn primary" id="bPlay"></button><button class="btn" id="bPrev">◀</button><button class="btn" id="bNext">▶</button>
+          <button class="btn" id="bRestart" data-t="restart"></button>
+        </div>
+        <label class="sl" for="speed"><span data-t="speed"></span><span id="vSpeed">1×</span></label>
+        <input type="range" id="speed" min="0.5" max="3" step="0.25" value="1" />
+        <label class="sl" for="pause"><span data-t="storyPause"></span><span id="vPause"></span></label>
+        <input type="range" id="pause" min="3" max="15" step="1" value="7" />
+
+        <h2 data-t="card"></h2>
+        <label class="sl" for="opacity"><span data-t="opacity"></span><span id="vOpacity"></span></label>
+        <input type="range" id="opacity" min="40" max="100" step="5" value="80" />
+
+        <h2 data-t="milestones"></h2>
+        <ul id="jump"></ul>
+
+        <div class="note"><span data-t="about"></span><br /><br /><span data-t="keys"></span></div>
+      </aside>
+    </div>
+    <script type="module" src="./src/main.js?v=2026-11-16x"></script>
+  </body>
+</html>
