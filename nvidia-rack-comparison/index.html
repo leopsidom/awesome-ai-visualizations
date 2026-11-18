@@ -62,7 +62,7 @@
       .head .tl { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 4px 0 2px; }
       #cMetric { font-size: 20px; font-weight: 600; line-height: 1.2; }
       /* what the metric is, how it affects performance, and useful context */
-      .about { color: var(--t2); font-size: 12.5px; line-height: 1.45; }
+      .about { color: var(--t2); font-size: 12.5px; line-height: 1.45; } .about:empty { display: none; }
       .chips { display: flex; gap: 6px; flex-wrap: wrap; }
       .chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--t2); }
       .chip.low { border-color: #e66767; color: #f0b0b0; } .chip.medium { border-color: #c98500; color: #e8c77a; } .chip.high { border-color: #199e70; color: #8fd9bb; }
@@ -138,6 +138,7 @@
         #cardrow.floating { width: min(calc(100% - 40px), 900px); grid-template-columns: minmax(230px, 1fr) 2.5fr; grid-template-areas: "head head" "about cmp" "about notes";
           gap: 8px 24px; padding: 14px 18px; --barh: 60px; align-items: start; }
         #cardrow.floating > .about { align-self: start; }
+        #cardrow.floating:has(> .about:empty) { grid-template-areas: "head head" "cmp cmp" "notes notes"; } /* no explanation: the comparison takes the full width */
         #cardrow.floating .val .num, #cardrow.floating #cDelta { font-size: 28px; }
       }
       /* short screens (phone landscape): the head and the comparison side by side, no notes */

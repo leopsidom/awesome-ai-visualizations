@@ -330,9 +330,9 @@ function renderCard(animate) {
     else { numAnim = null; shown = { b, r }; $("vB").textContent = T.value(b, d.unit); $("vR").textContent = T.value(r, d.unit); }
     $("barB").style.height = `${(b / mx) * 100}%`; // strictly proportional, shared zero baseline
     $("barR").style.height = `${(r / mx) * 100}%`;
-    $("cDelta").textContent = Math.abs(ratio - 1) < 0.005 ? s.same : `${ratio.toFixed(2)}×`;
+    $("cDelta").textContent = `${ratio.toFixed(2)}×`;
     const p = Math.round((ratio - 1) * 100);
-    $("cDeltaTxt").textContent = p === 0 ? s.noChange : d.cost ? (p > 0 ? s.costUp(p) : s.costDown(p)) : p > 0 ? s.more(p) : s.less(p);
+    $("cDeltaTxt").textContent = p === 0 ? "" : d.cost ? (p > 0 ? s.costUp(p) : s.costDown(p)) : p > 0 ? s.more(p) : s.less(p);
   } else {
     numAnim = null;
     card.classList.add("text");
