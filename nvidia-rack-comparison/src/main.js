@@ -29,7 +29,7 @@ const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } },
 };
-const LANG_KEY = "twin-racks-lang", OPACITY_KEY = "twin-racks-card-opacity";
+const LANG_KEY = "twin-racks-lang", OPACITY_KEY = "twin-racks-card-opacity", TITLE_OPACITY_KEY = "twin-racks-title-opacity";
 function initialLang() {
   const q = params.get("lang");
   if (LANGS.includes(q)) return q;
@@ -252,7 +252,7 @@ function highlight(part) {
     const P = parts[k];
     const set = (arr, on, base = 0) => arr.forEach((m) => { m.userData.hl = on; m.material.emissiveIntensity = on ? 1 : base; });
     // "ov-*" are the overview frame's steps: GPUs, CPUs, compute trays, NVLink switch trays
-    set(P.gpu, part === "gpu" || part === "rack" || part === "ov-gpu", 0.15);
+    set(P.gpu, part === "gpu" || part === "rack" || part === "ov-gpu" || part === "ov-hbm", 0.15); // the HBM sits on the GPU package
     set(P.cpu, part === "cpu" || part === "ov-cpu");
     set(P.sw, part === "switch" || part === "rack" || part === "ov-switch");
     set(P.nic, part === "nic");
@@ -272,7 +272,7 @@ const FRAMES = [{ id: "intro", part: "none" }, { id: "summary", part: "rack" }];
 const NF = FRAMES.length, NS = NF + SPECS.length;
 const partOf = (i) => (i < NF ? FRAMES[i].part : SPECS[i - NF].part);
 // The overview walks through its four lines, one part at a time, in step with the racks; one full walk per tour dwell.
-const OV_STEPS = ["gpu", "cpu", "tray", "switch"];
+const OV_STEPS = ["gpu", "hbm", "cpu", "tray", "switch"];
 let ovT0 = 0, ovStep = -1;
 function overviewTick(now) {
   if (FRAMES[idx]?.id !== "summary") return;
@@ -292,10 +292,11 @@ function renderFrame(id) {
     return `<div class="lab">${s.introKicker}</div><div class="ft">${s.introTitle}</div><div class="rule"></div><div class="fs" style="margin-top:16px">${s.introSub}</div><div class="fh">${s.introHint(SPECS.length)}</div>`;
   }
   // each line names a part; the overview steps through them and lights the same part on the racks
-  const col = (k, name, gpu, cpu) => `<div class="fc ${k}"><b>${name}</b><span data-ov="gpu">${s.gpus(gpu)}</span><span data-ov="cpu">${s.cpus(cpu)}</span>` +
-    `<span data-ov="tray">${s.computeTrays}</span><span data-ov="switch">${s.switchTrays}</span></div>`;
+  // 2 columns × 2 rows, like the spec cards: the system names as a header row, then each system's parts
+  const col = (k, gpu, hbm, cpu, nvl) => `<div class="fc ${k}"><span data-ov="gpu">${s.gpus(gpu)}</span><span data-ov="hbm">${s.perGpu(hbm)}</span>` +
+    `<span data-ov="cpu">${s.cpus(cpu)}</span><span data-ov="tray">${s.computeTrays}</span><span data-ov="switch">${s.switchTrays(nvl)}</span></div>`;
   return `<div class="lab">${s.sumKicker}</div><div class="ft">${s.sumTitle}</div><div class="fs">${s.sumSize}</div>` +
-    `<div class="fcols">${col("b", "GB300 NVL72", "B300", "Grace")}${col("r", "Vera Rubin NVL72", "Rubin", "Vera")}</div>`;
+    `<div class="fcols"><div class="ch b">GB300 NVL72</div><div class="ch r">Vera Rubin NVL72</div>${col("b", "B300", s.hbmB, "Grace", 5)}${col("r", "Rubin", s.hbmR, "Vera", 6)}</div>`;
 }
 function renderCard(animate) {
   const s = T.s;
@@ -315,7 +316,8 @@ function renderCard(animate) {
   const d = SPECS[idx - NF];
   $("cStep").textContent = s.step(T.group(d.group), idx - NF + 1, SPECS.length);
   $("cMetric").textContent = T.metric(d);
-  $("cChips").innerHTML = `<span class="chip">${s.scope[d.scope]}</span><span class="chip ${d.confidence}">${s.conf(d.confidence)}</span>${d.cost ? `<span class="chip">${s.costChip}</span>` : ""}`;
+  $("cChips").innerHTML = `<span class="chip ${d.confidence}">${s.conf(d.confidence)}</span>${d.cost ? `<span class="chip">${s.costChip}</span>` : ""}`;
+  $("cAbout").textContent = T.about(d); // what the metric is and why it matters
   $("uB").textContent = $("uR").textContent = T.unit(d.unit);
   $("cNote").textContent = T.note(d);
   $("cSrc").textContent = s.source + d.source;
@@ -345,7 +347,7 @@ function renderCard(animate) {
 // change cancels an older slide part-way, so rapid presses never queue up.
 let slideToken = 0;
 function slideCard(dir, update) {
-  const els = [...card.children].filter((e) => e.matches(".head, .val, .delta, .frame"));
+  const els = [...card.children].filter((e) => e.matches(".head, .about, .cmp, .notes, .frame"));
   els.forEach((e) => e.getAnimations().forEach((a) => a.cancel()));
   if (!dir || reduced || STILL) { update(); return; }
   const token = ++slideToken, dx = 28 * dir;
@@ -411,6 +413,9 @@ function setLang(lang) {
   document.querySelectorAll("[data-i18n-title]").forEach((el) => (el.title = T.s[el.dataset.i18nTitle]));
   document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.lang === T.lang));
   $("prev").textContent = T.s.prev; $("next").textContent = T.s.next; $("play").textContent = playing ? T.s.pause : T.s.play;
+  document.querySelector("#panel .seg").setAttribute("aria-label", T.s.ariaLanguage);
+  $("dwell").setAttribute("aria-label", T.s.ariaDwell);
+  $("op").setAttribute("aria-label", T.s.ariaOpacity);
   toggleLabel(); buildList(); dimLabels(); renderCard(false); resize();
 }
 document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => setLang(b.dataset.lang)));
@@ -425,6 +430,9 @@ $("nvlink").onchange = (e) => { for (const k of KEYS) particles[k].pts.visible =
 $("dims").onchange = (e) => { dims.visible = e.target.checked && !stage.classList.contains("titlemode"); resize(); };
 function setOpacity(v) { document.documentElement.style.setProperty("--card-alpha", (v / 100).toFixed(2)); $("op").value = v; $("opV").textContent = `${v}%`; }
 $("op").oninput = (e) => { setOpacity(+e.target.value); store.set(OPACITY_KEY, e.target.value); };
+// the title slide has its own opacity, separate from the spec cards'
+function setTitleOpacity(v) { document.documentElement.style.setProperty("--title-alpha", (v / 100).toFixed(2)); $("top").value = v; $("topV").textContent = `${v}%`; }
+$("top").oninput = (e) => { setTitleOpacity(+e.target.value); store.set(TITLE_OPACITY_KEY, e.target.value); };
 let autoClosed = false, notesTouched = false;
 $("notes").checked = !mqPhone.matches;
 card.classList.toggle("nonotes", mqPhone.matches);
@@ -503,6 +511,7 @@ function resize() {
 addEventListener("resize", resize);
 if (mqPhone.matches) { wrap.classList.add("closed"); autoClosed = true; }
 setOpacity(Math.max(0, Math.min(100, +(params.get("op") ?? store.get(OPACITY_KEY) ?? 55))));
+setTitleOpacity(Math.max(0, Math.min(100, +(params.get("top") ?? store.get(TITLE_OPACITY_KEY) ?? 90))));
 applyCardMode();
 setLang(T.lang);
 show(params.has("m") ? NF + (Math.max(0, +params.get("m")) % SPECS.length) : 0, 0); // starts on the title frame; ?m=N opens spec N

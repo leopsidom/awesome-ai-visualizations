@@ -44,7 +44,8 @@ Every control is in the side panel; the card carries none. The panel holds the l
 `中文`, kept in `localStorage` as `twin-racks-lang` and written to the URL as `?lang=`), **Prev / Play tour /
 Next**, seconds per metric (2–12, default 5), camera follow, loop, whether the card floats over the scene or
 docks as a strip below it, whether the card shows the note and source (on by default on a desktop, off on a
-phone), the card opacity (0–100%, default 55%, kept in `localStorage` as `twin-racks-card-opacity`), the
+phone), the card opacity (0–100%, default 55%, kept in `localStorage` as `twin-racks-card-opacity`), the title-slide
+opacity, set separately (0–100%, default 90%, kept as `twin-racks-title-opacity`), the
 NVLink-traffic and rack-dimension layers, and the list: the two frames, then all 16 metrics with Rubin's ratio to B300.
 
 ### The opening frames
@@ -52,27 +53,36 @@ NVLink-traffic and rack-dimension layers, and the list: the two frames, then all
 Before the spec cards, the same card shows two text frames, which slide like the rest and are in the tour and
 the panel's list (under "Intro"):
 
-1. **Title slide:** "Nvidia Vera Rubin vs B300 comparison", subtitled "Nvidia's new generation of data center
-   chips — Vera Rubin against B300", with a two-colour rule and how to begin. Like a deck's opening slide, the
-   card grows to fill the stage under the header and covers the racks (at least 90% opaque whatever the
-   opacity setting); the dimension labels and the hint are hidden behind it, and the camera frames the racks as
+1. **Title slide:** "Nvidia Vera Rubin vs GB300 comparison", subtitled "Nvidia's new generation of data center
+   chips — Vera Rubin against GB300", with a two-colour rule and how to begin. Like a deck's opening slide, the
+   card grows to fill the stage under the header and covers the racks (90% opaque by default, with its own slider in the panel); the dimension labels and the hint are hidden behind it, and the camera frames the racks as
    if it weren't there, so they are ready when it shrinks back. Nothing on the racks is lit.
 2. **Overview, "Same rack, different chips":** the rack size (0.60 × 1.07 × 2.24 m, the same for both and drawn
-   to true size), and each system's contents, one line per part: 72 GPUs (B300 / Rubin), 36 CPUs (Grace / Vera),
-   18 compute trays and 9 NVLink switch trays. The frame walks through the four lines in turn: the line is
-   emphasised in both columns, tinted in the system's colour, while the same part lights up on both racks (the
-   GPUs; the CPUs, with the tray covers made see-through; the compute-tray bodies; the switch trays). One full
-   walk takes one tour step (1.25 s per part at the default 5 s, never under 0.9 s) and repeats while the frame
-   is shown.
+   to true size), then a 2-column grid with the system names as its header row and one line per part: 72 GPUs
+   (B300 / Rubin); 576 HBM stacks per rack (72 GPUs × 8; HBM3e / HBM4 — the generation is the difference: same count, same 36 GB per stack); 36 CPUs (Grace / Vera); 18 compute
+   trays; and 9 NVLink switch trays, naming the generation (NVLink 5 / NVLink 6). The frame walks through the
+   five lines in turn: the line is emphasised in both columns, tinted in the system's colour, while the same part
+   lights up on both racks (the GPU packages for the GPU and HBM lines; the CPUs, with the tray covers made
+   see-through; the compute-tray bodies; the switch trays). One full walk takes one tour step (1 s per line at the
+   default 5 s, never under 0.9 s) and repeats while the frame is shown. The HBM and NVLink details come from the
+   HBM-capacity and NVLink notes in `src/data.js`; the 8 HBM4 stacks are 36 GB each (288 GB ÷ 8).
 
 This replaces the subtitle and the per-card "72 × B300 · 36 × Grace" lines of earlier versions, so the counts
 are said once instead of on every card. Going back from the title wraps to the last metric.
 
 ### The spec card
 
-- **What it shows:** the metric and its group, chips for its scope (GPU, CPU or rack), its confidence and, for
-  power and price, "cost (lower is better)"; the GB300 NVL72 and Vera Rubin NVL72 values; on six cards, the rack total under each value; Rubin's
-  ratio to B300 and the change in per cent; and the note and source.
+- **What it shows:** the metric's group and position; the metric name with its confidence chip right after it
+  (and, for power and price, "cost (lower is better)"); a short explanation of the metric; the comparison; and the
+  note and source.
+- **The explanation** (2–3 sentences, in English and Chinese, from `about` / `aboutZh` in `src/data.js`) says what
+  the metric measures, how it affects performance, and any useful context, e.g. that LLM token generation is
+  usually limited by HBM bandwidth rather than peak FLOPS, or that B300 cut FP64 to make room for FP4. On a wide
+  screen it sits on the left beside the comparison; on a phone it sits under the title; phone landscape hides it.
+- **The comparison** is a three-column, two-row grid. The first row is the headers: GB300 NVL72 (blue), Vera Rubin
+  NVL72 (orange) and "Rubin vs B300" (差异 in Chinese). The second row is the values: each system's bar, number
+  and unit (and, on six cards, the rack total under it), and in the third column Rubin's ratio to B300 (e.g.
+  27.50×) with the change in per cent. Text metrics (process node, availability) use the first two columns only.
 - **Rack totals:** where a rack figure is only the GPU figure × 72 (FP4 inference and training, HBM capacity and
   bandwidth, NVLink), it is a "per rack" line on the GPU card, e.g. "per rack: 1.08 EFLOPS" under 15 PFLOPS,
   rather than a card of its own; the rack's fast memory (72 GPUs' HBM plus 36 CPUs' LPDDR5X) sits on the CPU
@@ -83,8 +93,8 @@ are said once instead of on every card. Going back from the title wraps to the l
   scale, so FP4 inference reads 15 : 50 and FP64 1.2 : 33. Text metrics (process node, availability) hide them.
 - **Where it sits:** centred under the title, over the scene, see-through with a light blur. The system names
   live only here and in the title, which colours them blue and orange to match the racks.
-- **On a wide screen** it is one row; on a phone two columns; in phone landscape one compact row without the
-  chips and notes.
+- **On a wide screen** the metric and chips sit on the left with the comparison and note beside them; on a phone
+  they stack; in phone landscape the metric and the comparison sit side by side without the chips and notes.
 - **Changing metric:** the card's frame stays put while its contents slide out (170 ms) and the next metric's
   slide in from the other side (300 ms), the title first and the values and the comparison a beat after it.
   Forward (Next, →, the tour, a swipe left) slides left; back slides right; picking from the list slides in
@@ -133,7 +143,10 @@ What to know before relying on it:
 - **The rack geometry is schematic.** The outer size follows the Oberon-class NVL72 rack; the tray layout
   (power shelves, 18 compute trays with 4 GPUs and 2 CPUs each, 9 NVLink switch trays) is accurate in count but
   not in exact position.
-- **The Chinese strings and notes were machine-written** and no native reader has reviewed them.
+- **The Chinese strings and notes were machine-written.** A model-run audit fixed the one clear error it
+  found (billions printed as "208 十亿", now "2080 亿"), renamed the Timing group 上市时间 → 供货时间, replaced
+  English "vs" with 与 in three notes, and tightened four labels (step, confidence, ratio text, screen-reader
+  names). A native reader should still review them.
 
 To change the dataset, edit `src/data.js`. A row needs `id`, `group`, `part` (which part lights up), `scope`,
 `unit`, `b300`, `rubin` and `confidence`. Numeric values are numbers; text rows use `unit: "text"` and give
@@ -185,8 +198,8 @@ their Chinese forms in `textZh`. Add the Chinese metric name to `metricNames` in
   - The tour, driven with a simulated clock at 2 s per metric, moves on at 2.0 s, 4.0 s and 6.0 s.
   - With the CDN blocked, the notice appears.
   - The overview walk, stepped through with a test hook: each step emphasises the matching line in both columns
-    and lights exactly 144 GPUs, 72 CPUs, 36 compute trays or 18 switch trays across the two racks (twice the
-    per-rack counts); leaving the frame restores the next metric's highlight.
+    and lights exactly 144 GPUs (for the GPU and HBM lines), 72 CPUs, 36 compute trays or 18 switch trays across
+    the two racks (twice the per-rack counts); leaving the frame restores the next metric's highlight.
   - The card slide, with its animations paused at fixed times: at 85 ms into Next the old contents sit 9 px
     left at 68% opacity; at 120 ms the new ones come in from the right; Prev mirrors both. Four quick → presses
     settle on the fourth metric with no animation left running; with reduced motion the card swaps at once.

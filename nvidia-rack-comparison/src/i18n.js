@@ -4,7 +4,8 @@
  *
  * Product and chip names (GB300 NVL72, Vera Rubin NVL72, B300, Grace, Rubin, Vera) and source
  * site names stay in English in both languages. Prices read "$7.8M" in English and "780 万美元"
- * in Chinese. The Chinese strings were machine-written and have not been reviewed by a native reader.
+ * in Chinese; transistor counts read "208 billion" and "2080 亿". The Chinese strings were written by
+ * a model: a first audit round has been applied (see the README), but a native reader has not checked them.
  */
 
 export const LANGS = ["en", "zh"];
@@ -18,19 +19,22 @@ const EN = {
   intro: "Both racks share the same size (~0.60 × 1.07 × 2.24 m); dimensions are marked directly on the racks. For each metric, the part of the rack it describes lights up.",
   barTitle: "Bar height is proportional to the value",
   introKicker: "Rack-scale comparison",
-  introTitle: 'Nvidia <span class="nr">Vera Rubin</span> <span class="vs">vs</span> <span class="nb">B300</span> comparison',
-  introSub: "Nvidia's new generation of data center chips — Vera Rubin against B300",
+  introTitle: 'Nvidia <span class="nr">Vera Rubin</span> <span class="vs">vs</span> <span class="nb">GB300</span> comparison',
+  introSub: "Nvidia's new generation of data center chips — Vera Rubin against GB300",
   introHint: (n) => `${n} specs follow · Play tour, press → or swipe the card to begin`,
   sumKicker: "Overview",
   sumTitle: "Same rack, different chips",
   sumSize: "Each rack is 0.60 m wide, 1.07 m deep and 2.24 m high — the same for both, and drawn to true size here.",
   gpus: (n) => `72 × ${n} GPUs`,
   cpus: (n) => `36 × ${n} CPUs`,
+  perGpu: (hbm) => `576 ${hbm} stacks`, // 72 GPUs × 8 stacks, per rack like the other lines
+  hbmB: "HBM3e",
+  hbmR: "HBM4",
   computeTrays: "18 compute trays",
-  switchTrays: "9 NVLink switch trays",
+  switchTrays: (gen) => `9 NVLink ${gen} switch trays`,
   introGroup: "Intro",
   frameNames: { intro: "Title", summary: "Overview: rack and chips" },
-  compared: "Rubin compared with B300",
+  compared: "Rubin vs B300",
   language: "Language",
   auto: "Auto-compare",
   prev: "‹ Prev",
@@ -44,6 +48,10 @@ const EN = {
   floatCard: "Card over the scene, under the title (uncheck to dock it below)",
   notes: "Show note and source on the card",
   opacity: "Card opacity",
+  titleOpacity: "Title slide opacity",
+  ariaLanguage: "Language",
+  ariaDwell: "Seconds per metric",
+  ariaOpacity: "Card opacity",
   layers: "Layers",
   nvlink: "NVLink traffic (particle speed shows link bandwidth)",
   dims: "Rack dimensions (metres)",
@@ -91,19 +99,22 @@ const ZH = {
   intro: "两个机柜尺寸相同（约 0.60 × 1.07 × 2.24 米），尺寸直接标注在机柜上。每个指标对应的机柜部件会高亮显示。",
   barTitle: "柱高与数值成正比",
   introKicker: "机柜级对比",
-  introTitle: 'Nvidia <span class="nr">Vera Rubin</span> <span class="vs">与</span> <span class="nb">B300</span> 对比',
-  introSub: "Nvidia 新一代数据中心芯片——Vera Rubin 对比 B300",
+  introTitle: 'Nvidia <span class="nr">Vera Rubin</span> <span class="vs">与</span> <span class="nb">GB300</span> 对比',
+  introSub: "Nvidia 新一代数据中心芯片——Vera Rubin 对比 GB300",
   introHint: (n) => `接下来共 ${n} 项规格 · 点击自动播放、按 → 或滑动卡片开始`,
   sumKicker: "概览",
   sumTitle: "机柜相同，芯片不同",
   sumSize: "每个机柜宽 0.60 米、深 1.07 米、高 2.24 米——两者相同，此处按实际尺寸绘制。",
   gpus: (n) => `72 颗 ${n} GPU`,
   cpus: (n) => `36 颗 ${n} CPU`,
+  perGpu: (hbm) => `576 个 ${hbm} 堆栈`,
+  hbmB: "HBM3e",
+  hbmR: "HBM4",
   computeTrays: "18 个计算托盘",
-  switchTrays: "9 个 NVLink 交换托盘",
+  switchTrays: (gen) => `9 个 NVLink ${gen} 交换托盘`,
   introGroup: "开场",
   frameNames: { intro: "标题", summary: "概览：机柜与芯片" },
-  compared: "Rubin 相对 B300",
+  compared: "差异",
   language: "语言",
   auto: "自动对比",
   prev: "‹ 上一项",
@@ -117,6 +128,10 @@ const ZH = {
   floatCard: "卡片悬浮在场景上、标题下方（取消勾选则停靠在底部）",
   notes: "在卡片上显示备注与来源",
   opacity: "卡片不透明度",
+  titleOpacity: "标题页不透明度",
+  ariaLanguage: "语言",
+  ariaDwell: "每项停留秒数",
+  ariaOpacity: "卡片不透明度",
   layers: "图层",
   nvlink: "NVLink 流量（粒子速度表示链路带宽）",
   dims: "机柜尺寸标注（米）",
@@ -128,14 +143,14 @@ const ZH = {
   dimH: "2.24 米",
   dimW: "0.60 米",
   dimD: "1.07 米",
-  step: (g, i, n) => `${g} · 第 ${i} / ${n} 项`,
-  conf: (c) => `可信度：${{ high: "高", medium: "中", low: "低" }[c]}`,
+  step: (g, i, n) => `${g} · ${i} / ${n}`,
+  conf: (c) => `可信度${{ high: "高", medium: "中", low: "低" }[c]}`,
   costChip: "成本项（越低越好）",
   scope: { gpu: "GPU", cpu: "CPU", rack: "整机柜" },
   same: "相同（1.00×）",
   noChange: "无变化",
-  more: (p) => `多 ${p}%`,
-  less: (p) => `少 ${Math.abs(p)}%`,
+  more: (p) => `高出 ${p}%`,
+  less: (p) => `低 ${Math.abs(p)}%`,
   costUp: (p) => `成本高 ${p}%`,
   costDown: (p) => `成本低 ${Math.abs(p)}%`,
   source: "来源：",
@@ -150,7 +165,7 @@ const ZH = {
     NIC: { b300: "ConnectX-8 · 每 GPU 800 Gb/s", rubin: "ConnectX-9 · 每 GPU 1.6 Tb/s" },
     PWR: { b300: "整柜最高约 142 kW", rubin: "整柜最高约 227 kW（Max-P）/ 187 kW（Max-Q）" },
   },
-  units: { billion: "十亿", cores: "核" },
+  units: { cores: "核" },
   metricNames: {
     "Process node": "制程工艺", Transistors: "晶体管数量", "NVFP4 inference": "NVFP4 推理算力", "NVFP4 training": "NVFP4 训练算力",
     FP64: "FP64 算力", "HBM capacity": "HBM 容量", "HBM bandwidth": "HBM 带宽",
@@ -158,7 +173,7 @@ const ZH = {
     "CPU cores": "CPU 核心数", "CPU memory per CPU": "每颗 CPU 内存容量", "CPU memory bandwidth": "CPU 内存带宽",
     "Rack power (max)": "整柜功耗（最大）", "Rack price (analyst est.)": "整柜价格（分析师估算）", "Volume availability": "量产供货时间",
   },
-  groups: { Silicon: "芯片工艺", "GPU compute": "GPU 算力", "GPU memory": "GPU 显存", Interconnect: "互连", Power: "功耗", CPU: "CPU", Rack: "整机柜", Timing: "上市时间" },
+  groups: { Silicon: "芯片工艺", "GPU compute": "GPU 算力", "GPU memory": "GPU 显存", Interconnect: "互连", Power: "功耗", CPU: "CPU", Rack: "整机柜", Timing: "供货时间" },
 };
 
 /** The strings and formatters for one language. */
@@ -166,9 +181,14 @@ export function makeText(lang) {
   const zh = lang === "zh";
   const s = zh ? ZH : EN;
   const locale = zh ? "zh-CN" : "en-US";
-  /** A spec value: 3 decimals under 1, 2 under 10, 1 under 100, none above; prices in $M / 万美元. */
+  /** A spec value: 3 decimals under 1, 2 under 10, 1 under 100, none above; prices in $M / 万美元;
+   *  billions in 亿, where the value carries the scale (208 billion -> 2080 亿). */
   const value = (v, unit) => {
-    if (unit === "USD M") return zh ? `${Math.round(v * 100).toLocaleString(locale)} 万美元` : `$${v.toFixed(1)}M`;
+    if (unit === "USD M") return zh ? Math.round(v * 100).toLocaleString(locale) : `$${v.toFixed(1)}M`; // zh: "万美元" goes in the unit text
+    if (zh && unit === "billion") { // 208 billion reads 2080 亿: 亿 is the unit, the "-illion" scale is not
+      const n = v * 10, a = Math.abs(n), d = a >= 100 ? 0 : a >= 10 ? 1 : 2;
+      return `${+n.toFixed(d)} 亿`;
+    }
     const a = Math.abs(v), d = a >= 100 ? 0 : a >= 10 ? 1 : a >= 1 ? 2 : 3;
     return (+v.toFixed(d)).toLocaleString(locale, { maximumFractionDigits: d });
   };
@@ -179,8 +199,9 @@ export function makeText(lang) {
     metric: (row) => s.metricNames[row.id] || row.id,
     group: (g) => s.groups[g] || g,
     note: (row) => (zh ? row.noteZh : row.note) || "",
+    about: (row) => (zh ? row.aboutZh : row.about) || "",
     text: (row, i) => (zh && row.textZh ? row.textZh[i] : i ? row.rubin : row.b300),
-    unit: (u) => (u === "USD M" || u === "text" ? "" : s.units[u] || u),
+    unit: (u) => (u === "USD M" ? (zh ? "万美元" : "") : u === "text" || (zh && u === "billion") ? "" : s.units[u] || u),
     sub: (row, i) => ((zh ? row.subZh : row.sub) || [])[i] || "",
   };
 }
