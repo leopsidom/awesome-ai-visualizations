@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Twin Racks — GB300 NVL72 vs Vera Rubin NVL72</title>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+      :root {
+        --card-alpha: 0.55;
+        --title-alpha: 0.9;
+        --bg: #18191c;
+        --panel: #1f2023;
+        --card: #1c1c1b;
+        --line: #34363b;
+        --t1: #f0efec;
+        --t2: #c3c2b7;
+        --t3: #8f8e86;
+        --b300: #3987e5;
+        --rubin: #d95926;
+        --font: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", Helvetica, Arial, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; background: var(--bg); color: var(--t1); font: 13px/1.45 var(--font); overflow: hidden; }
+
+      /* Stage and panel sit side by side (stacked on phones); the panel never covers the scene. */
+      #wrap { display: flex; height: 100vh; height: 100dvh; }
+      #main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+      #stage { flex: 1; position: relative; min-height: 0; overflow: hidden; container-type: size;
+               /* neutral dark-grey backdrop; the wafer (green rim, rainbow sheen) carries the NVIDIA colour */
+               background: radial-gradient(ellipse at 50% 40%, #3a3d43 0%, #27292e 45%, #18191c 82%); }
+      /* the wafer (drawn by main.js): centred behind the transparent WebGL canvas, faded, turning slowly */
+      #stage #wafer { position: absolute; left: 50%; top: 50%; width: min(94cqh, 120cqw); height: auto; aspect-ratio: 1;
+                      transform: translate(-50%, -50%); opacity: 0.6; pointer-events: none; animation: wafer-turn 600s linear infinite; }
+      @keyframes wafer-turn { to { transform: translate(-50%, -50%) rotate(360deg); } }
+      #stage > canvas { position: absolute; inset: 0; touch-action: none; }
+      #panel { width: 320px; flex: none; background: var(--panel); border-left: 1px solid var(--line); padding: 16px 18px 24px; overflow-y: auto; transition: margin-right 0.25s; }
+      #wrap.closed #panel { margin-right: -320px; }
+      #toggle { position: absolute; top: 19px; right: 12px; z-index: 5; background: var(--panel); color: var(--t1); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; font: inherit; }
+
+      #title { position: absolute; left: 16px; top: 24px; pointer-events: none; z-index: 3; max-width: calc(100% - 160px); }
+      #title b { font-size: 16px; }
+      #title .nb { color: #6aa6ee; } #title .nr { color: #ee8556; } #title .vs { color: var(--t3); font-weight: 400; }
+      .sub { color: var(--t2); font-size: 12px; }
+      #hint { position: absolute; left: 16px; bottom: 10px; color: var(--t3); font-size: 11px; pointer-events: none; z-index: 3; }
+      #tip { position: absolute; pointer-events: none; background: #232322f0; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; display: none; max-width: 270px; z-index: 6; }
+      #notice { position: absolute; inset: auto 16px 16px 16px; z-index: 7; color: #ffb74d; display: none; }
+
+      /* ---------- spec card: information only, no controls on it ---------- */
+      /* head (metric, chips), then the comparison grid, then the note and source */
+      #cardrow { flex: none; border-top: 1px solid var(--line); background: var(--card); padding: 14px 20px 12px; display: grid;
+                 grid-template-columns: 1fr; grid-template-areas: "head" "about" "cmp" "notes"; gap: 10px; --barh: 64px; }
+      #cardrow > .about { grid-area: about; }
+      #cardrow > .head { grid-area: head; } #cardrow > .cmp { grid-area: cmp; } #cardrow > .notes { grid-area: notes; }
+      #cardrow .lab { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t3); }
+      #cStep { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      /* the title line: metric name, then its confidence chip (and the cost chip) */
+      .head .tl { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 4px 0 2px; }
+      #cMetric { font-size: 20px; font-weight: 600; line-height: 1.2; }
+      /* what the metric is, how it affects performance, and useful context */
+      .about { color: var(--t2); font-size: 12.5px; line-height: 1.45; } .about:empty { display: none; }
+      .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+      .chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--t2); }
+      .chip.low { border-color: #e66767; color: #f0b0b0; } .chip.medium { border-color: #c98500; color: #e8c77a; } .chip.high { border-color: #199e70; color: #8fd9bb; }
+      #progress { height: 3px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+      #progress i { display: block; height: 100%; width: 0; background: var(--t2); }
+      /* the comparison: three columns (GB300, Vera Rubin, the difference) × two rows (headers, then values) */
+      .cmp { display: grid; grid-template-columns: 1fr 1fr 1fr; column-gap: 16px; row-gap: 6px; align-items: end; }
+      .cmp .ch, .frame .fcols .ch { font-size: 12.5px; font-weight: 650; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.14); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cmp .ch.b, .frame .fcols .ch.b { color: #6aa6ee; } .cmp .ch.r, .frame .fcols .ch.r { color: #ee8556; } .cmp .ch.d { color: var(--t2); font-weight: 500; }
+      .val { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: end; min-width: 0; }
+      .val > .txt { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+      /* the value bars: height proportional to the value, shared zero baseline */
+      .vbar { width: 16px; height: var(--barh); border-radius: 4px 4px 0 0; background: rgba(255, 255, 255, 0.07); border-bottom: 2px solid rgba(255, 255, 255, 0.35); display: flex; align-items: flex-end; }
+      .vbar i { display: block; width: 100%; height: 0; border-radius: 3px 3px 0 0; transition: height 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+      .val.b .vbar i { background: var(--b300); } .val.r .vbar i { background: var(--rubin); }
+      .val .num { font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.1; margin: 2px 0 0; }
+      .val .unit { font-size: 13px; color: var(--t2); font-weight: 400; margin-left: 4px; display: inline-block; white-space: nowrap; } /* a unit never breaks mid-word */
+      /* the published rack total (72 GPUs / 36 CPUs), on the cards where it is just the per-chip figure scaled up */
+      .val .rack { font-size: 11.5px; color: var(--t2); margin-top: 2px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+      .val .rack:empty { display: none; }
+      .dv { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+      #cDelta { font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.1; }
+      #cDeltaTxt { color: var(--t2); font-size: 12px; margin-top: 2px; }
+      /* text rows (process node, availability): two columns, no bars and no difference */
+      #cardrow.text .cmp { grid-template-columns: 1fr 1fr; }
+      #cardrow.text .ch.d, #cardrow.text .dv, #cardrow.text .vbar { display: none; }
+      #cardrow.text .val .num { white-space: nowrap; }
+      #cardrow.text .val .unit { display: block; margin: 2px 0 0; font-size: 13px; white-space: nowrap; color: var(--t2); } /* e.g. "4 nm" under "TSMC 4NP" */
+      #cNote { color: var(--t2); font-size: 12px; } #cSrc { color: var(--t3); font-size: 11px; margin-top: 2px; }
+      #cardrow.nonotes > .notes { display: none; }
+      /* text frames (title, summary) before the spec cards: same card, contents swapped */
+      #cardrow > .frame { display: none; grid-area: 1 / 1 / -1 / -1; }
+      #cardrow.framemode > .head, #cardrow.framemode > .about, #cardrow.framemode > .cmp, #cardrow.framemode > .notes { display: none !important; }
+      #cardrow.framemode > .frame { display: block; }
+      /* the title slide: the first frame fills the stage under the header and covers the racks, like a deck's opening slide */
+      #cardrow.floating.titleslide { width: calc(100% - 32px); min-height: calc(100% - var(--card-top, 64px) - 16px); display: flex; flex-direction: column;
+        justify-content: center; align-items: center; text-align: center; padding: 32px 24px; background: rgba(26, 26, 25, var(--title-alpha));
+        -webkit-backdrop-filter: blur(calc(var(--title-alpha) * 12px)); backdrop-filter: blur(calc(var(--title-alpha) * 12px)); } /* its own opacity slider */
+      #stage.titlemode #hint { visibility: hidden; }
+      #cardrow.titleslide .frame .lab { font-size: clamp(11px, 1.2vw, 14px); letter-spacing: 0.18em; color: #76b900; } /* NVIDIA green */
+      #cardrow.titleslide .frame .ft { font-size: clamp(30px, 5.2vw, 64px); font-weight: 700; line-height: 1.12; margin: 14px 0 16px; letter-spacing: -0.01em; }
+      #cardrow.titleslide .frame .fs { font-size: clamp(15px, 1.9vw, 24px); max-width: 40ch; margin: 0 auto; }
+      #cardrow.titleslide .frame .fh { font-size: clamp(12px, 1.1vw, 14px); margin-top: clamp(24px, 6vh, 56px); }
+      #cardrow.titleslide .frame .rule { width: 72px; height: 3px; margin: 0 auto; border-radius: 2px; background: linear-gradient(90deg, var(--b300) 50%, var(--rubin) 50%); }
+      .frame .ft { font-size: 22px; font-weight: 650; line-height: 1.25; margin: 4px 0 6px; }
+      .frame .ft .nb { color: #6aa6ee; } .frame .ft .nr { color: #ee8556; } .frame .ft .vs { color: var(--t3); font-weight: 400; }
+      .frame .fs { color: var(--t2); font-size: 13px; max-width: 70ch; }
+      .frame .fh { color: var(--t3); font-size: 12px; margin-top: 8px; }
+      .frame .fcols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin-top: 10px; } /* header row, then the parts */
+      .frame .fc { border-left: 3px solid; padding-left: 10px; display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+      .frame .fc.b { border-color: var(--b300); } .frame .fc.r { border-color: var(--rubin); }
+      .frame .fc b { font-size: 13px; } .frame .fc .dim { color: var(--t3); font-size: 11.5px; }
+      /* the overview's walk: the line for the part lit on the racks is emphasised in both columns */
+      .frame .fc [data-ov] { color: var(--t2); padding: 1px 6px; margin-left: -6px; border-radius: 4px; transition: background-color 0.3s, color 0.3s; }
+      .frame .fc [data-ov].on { color: var(--t1); font-weight: 650; }
+      .frame .fc.b [data-ov].on { background: rgba(57, 135, 229, 0.28); } .frame .fc.r [data-ov].on { background: rgba(217, 89, 38, 0.28); }
+      @media (max-height: 520px) { #cardrow.titleslide .frame .ft { font-size: 26px; margin: 6px 0 8px; } #cardrow.titleslide .frame .fh { margin-top: 12px; } #cardrow.floating.titleslide .frame .fs { display: block; }
+        .frame .ft { font-size: 16px; margin: 0 0 2px; } .frame .fcols { margin-top: 4px; gap: 10px; } .frame .fc { font-size: 11.5px; } }
+
+
+      /* floating (the default): centred under the title, translucent; --card-alpha comes from the opacity slider */
+      #cardrow.floating { position: absolute; left: 50%; top: var(--card-top, 64px); transform: translateX(-50%); z-index: 4; width: min(calc(100% - 20px), 500px);
+        gap: 8px; padding: 12px 14px; border: 1px solid rgba(255, 255, 255, calc(0.06 + var(--card-alpha) * 0.1)); border-radius: 14px;
+        background: rgba(26, 26, 25, var(--card-alpha)); -webkit-backdrop-filter: blur(calc(var(--card-alpha) * 12px)); backdrop-filter: blur(calc(var(--card-alpha) * 12px));
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85); touch-action: pan-y; box-shadow: 0 8px 30px rgba(0, 0, 0, calc(var(--card-alpha) * 0.5)); --barh: 50px; }
+      #cardrow.floating #cMetric { font-size: 17px; } #cardrow.floating .about { font-size: 12px; }
+      #cardrow.floating .cmp { column-gap: 12px; grid-template-columns: 1.1fr 1.1fr 0.85fr; } #cardrow.floating .cmp .ch { font-size: 12px; }
+      #cardrow.floating.text .cmp { grid-template-columns: 1fr 1fr; } #cardrow.floating .val .unit { font-size: 12px; margin-left: 3px; }
+      #cardrow.floating .val .num, #cardrow.floating #cDelta { font-size: 24px; }
+      #cardrow.floating #cNote, #cardrow.floating #cSrc { font-size: 11px; }
+      /* wide screens: the head on the left, the comparison and the note beside it */
+      @media (min-width: 1101px) and (min-height: 521px) {
+        #cardrow.floating { width: min(calc(100% - 40px), 900px); grid-template-columns: minmax(230px, 1fr) 2.5fr; grid-template-areas: "head head" "about cmp" "about notes";
+          gap: 8px 24px; padding: 14px 18px; --barh: 60px; align-items: start; }
+        #cardrow.floating > .about { align-self: start; }
+        #cardrow.floating:has(> .about:empty) { grid-template-areas: "head head" "cmp cmp" "notes notes"; } /* no explanation: the comparison takes the full width */
+        #cardrow.floating .val .num, #cardrow.floating #cDelta { font-size: 28px; }
+      }
+      /* short screens (phone landscape): the head and the comparison side by side, no notes */
+      @media (max-height: 520px) {
+        #title .sub { display: none; }
+        #cardrow.floating { width: min(calc(100% - 20px), 760px); grid-template-columns: 0.8fr 2.6fr; grid-template-areas: "head cmp"; gap: 4px 14px; padding: 8px 12px; --barh: 32px; }
+        #cardrow.floating > .notes, #cardrow.floating > .about, #cardrow.floating .chips, #cardrow.floating #progress, #cardrow.floating .val .rack, #cardrow.floating .frame .fs, #cardrow.floating .frame .fh { display: none; }
+        #cardrow.floating > .head { align-self: center; }
+        #cardrow.floating #cMetric { font-size: 14px; } #cardrow.floating .head .tl { margin: 0; } #cardrow.floating .lab { font-size: 10px; }
+        #cardrow.floating .cmp .ch { font-size: 11px; padding-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #cardrow.floating .val .num, #cardrow.floating #cDelta { font-size: 19px; } #cardrow.floating #cDeltaTxt { font-size: 11px; }
+        #panel { max-height: 60dvh; }
+      }
+      /* docked below the scene on a wide screen: head, comparison and note in one row */
+      @media (min-width: 1101px) { #cardrow:not(.floating) { grid-template-columns: minmax(230px, 1fr) 2.4fr minmax(200px, 1fr); grid-template-areas: "head cmp notes" "about cmp notes"; gap: 24px; align-items: end; } }
+
+      /* ---------- panel ---------- */
+      h1 { font-size: 15px; margin: 0 0 4px; }
+      h2 { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t3); margin: 18px 0 8px; }
+      label { display: flex; gap: 8px; align-items: center; padding: 3px 0; cursor: pointer; color: var(--t2); }
+      label small { color: var(--t3); margin-left: auto; }
+      .btns { display: flex; gap: 6px; }
+      .btn { flex: 1; background: #2a2b2f; color: var(--t1); border: 1px solid var(--line); border-radius: 6px; padding: 7px; cursor: pointer; font: inherit; }
+      .btn:hover { border-color: var(--t3); } .btn.on { border-color: var(--t2); background: #34353a; }
+      .seg { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+      .seg button { flex: 1; background: transparent; color: var(--t2); border: 0; padding: 7px; cursor: pointer; font: inherit; }
+      .seg button.on { background: #3a3b40; color: var(--t1); font-weight: 600; }
+      input[type="range"] { width: 100%; }
+      #mlist { display: flex; flex-direction: column; gap: 1px; }
+      #mlist .grp { font-size: 11px; color: var(--t3); margin: 8px 0 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+      #mlist button { all: unset; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; border-radius: 5px; color: var(--t2); }
+      #mlist button:hover { background: #2a2b2f; } #mlist button.cur { background: #34353a; color: var(--t1); }
+      #mlist button span:last-child { font-variant-numeric: tabular-nums; color: var(--t3); }
+
+      @media (max-width: 1100px) {
+        #panel { width: 280px; } #wrap.closed #panel { margin-right: -280px; }
+      }
+      /* phones: the scene on top, the panel stacked below it (never on top of it) */
+      @media (max-width: 760px) {
+        #wrap { flex-direction: column; }
+        #panel { width: auto; max-height: 46dvh; border-left: 0; border-top: 1px solid var(--line); margin: 0 !important; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
+        #wrap.closed #panel { display: none; }
+        #wrap:not(.closed) #cardrow.floating { display: none; }
+        #title { max-width: calc(100% - 120px); top: 18px; left: 12px; } #title b { font-size: 14px; } #title .sub { font-size: 11px; }
+        #hint { display: none; } #toggle { top: 14px; right: 10px; } .btn { padding: 10px; } label { padding: 6px 0; }
+      }
+      @media (prefers-reduced-motion: reduce) { .vbar i, #panel { transition: none; } #stage #wafer { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div id="wrap">
+      <div id="main">
+        <div id="stage">
+          <div id="title">
+            <b><span class="nb">GB300 NVL72</span> <span class="vs" data-i18n="vs">vs</span> <span class="nr">Vera Rubin NVL72</span></b>
+          </div>
+          <button id="toggle"></button>
+          <div id="hint" data-i18n="hint"></div>
+          <div id="tip"></div>
+          <div id="notice">The 3D scene could not start (WebGL or the three.js CDN is unavailable). · 3D 场景无法启动（WebGL 或 three.js CDN 不可用）。</div>
+        </div>
+        <section id="cardrow" class="floating" aria-live="polite">
+          <div class="head"><div class="lab" id="cStep"></div><div class="tl"><span id="cMetric">—</span><span class="chips" id="cChips"></span></div><div id="progress"><i></i></div></div>
+          <div class="about" id="cAbout"></div>
+          <div class="cmp">
+            <div class="ch b">GB300 NVL72</div><div class="ch r">Vera Rubin NVL72</div><div class="ch d" data-i18n="compared"></div>
+            <div class="val b">
+              <div class="vbar" data-i18n-title="barTitle"><i id="barB"></i></div>
+              <div class="txt"><div class="num"><span id="vB">—</span><span class="unit" id="uB"></span></div><div class="rack" id="rB"></div></div>
+            </div>
+            <div class="val r">
+              <div class="vbar" data-i18n-title="barTitle"><i id="barR"></i></div>
+              <div class="txt"><div class="num"><span id="vR">—</span><span class="unit" id="uR"></span></div><div class="rack" id="rR"></div></div>
+            </div>
+            <div class="dv"><div id="cDelta">—</div><div id="cDeltaTxt"></div></div>
+          </div>
+          <div class="notes"><div id="cNote"></div><div id="cSrc"></div></div>
+          <div class="frame" id="cFrame"></div>
+        </section>
+      </div>
+
+      <aside id="panel">
+        <h1 data-i18n="title"></h1>
+        <div class="sub" data-i18n="intro"></div>
+        <h2 data-i18n="language"></h2>
+        <div class="seg" role="group" aria-label="Language"><button data-lang="en">English</button><button data-lang="zh">中文</button></div>
+
+        <h2 data-i18n="auto"></h2>
+        <div class="btns"><button class="btn" id="prev"></button><button class="btn" id="play" data-i18n-title="playTitle"></button><button class="btn" id="next"></button></div>
+        <div class="btns" style="margin-top: 6px"><button class="btn" id="replay" data-i18n-title="replayTitle"></button></div>
+        <label style="margin-top: 8px"><span data-i18n="dwell"></span> <b id="dwellV" style="margin-left: auto; color: var(--t1)">5</b></label>
+        <input type="range" id="dwell" min="2" max="12" step="1" value="5" aria-label="Seconds per metric" />
+        <label><input type="checkbox" id="camFollow" checked /><span data-i18n="camFollow"></span><small>F</small></label>
+        <label><input type="checkbox" id="loop" checked /><span data-i18n="loop"></span></label>
+
+        <h2 data-i18n="cardH"></h2>
+        <label><input type="checkbox" id="floatCard" checked /><span data-i18n="floatCard"></span></label>
+        <label><input type="checkbox" id="notes" /><span data-i18n="notes"></span></label>
+        <label style="margin-top: 4px"><span data-i18n="opacity"></span> <b id="opV" style="margin-left: auto; color: var(--t1)">55%</b></label>
+        <input type="range" id="op" min="0" max="100" value="55" aria-label="Card opacity" />
+        <label style="margin-top: 4px"><span data-i18n="titleOpacity"></span> <b id="topV" style="margin-left: auto; color: var(--t1)">90%</b></label>
+        <input type="range" id="top" min="0" max="100" value="90" aria-label="Title slide opacity" />
+
+        <h2 data-i18n="layers"></h2>
+        <label><input type="checkbox" id="nvlink" checked /><span data-i18n="nvlink"></span></label>
+        <label><input type="checkbox" id="dims" checked /><span data-i18n="dims"></span></label>
+
+        <h2 data-i18n="metrics"></h2>
+        <div id="mlist"></div>
+      </aside>
+    </div>
+
+    <script type="module">
+      // main.js imports three.js; if the CDN or WebGL is unavailable the panel still shows, with a notice.
+      import("./src/main.js").catch((err) => {
+        console.error(err);
+        document.getElementById("notice").style.display = "block";
+      });
+    </script>
+  </body>
+</html>
