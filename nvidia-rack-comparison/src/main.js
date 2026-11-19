@@ -22,7 +22,10 @@ const STILL = params.has("still"); // screenshots: no glides or count-ups
 const COLOR = { b300: 0x3987e5, rubin: 0xd95926 };
 const KEYS = ["b300", "rubin"];
 const { w: RW, d: RD, h: RH, u: U } = RACK;
-const GAP = 16; // the same gap in px: title → card, card → racks, racks → bottom of the stage
+const GAP = 16; // side margins of the framed racks, in px
+const GAP_TITLE_CARD = 26; // heading → card
+const GAP_CARD_RACK = 6; // card → top of the racks (tight, so the racks sit right under the card)
+const GAP_BOTTOM = 6; // racks (and their dimension labels) → bottom of the stage / the hint
 
 // localStorage can throw in sandboxed previews; the page must still run
 const store = {
@@ -41,19 +44,68 @@ let T = makeText(initialLang());
 
 // ---------------------------------------------------------------- renderer and scene
 const stage = $("stage"), wrap = $("wrap"), card = $("cardrow"), mainEl = $("main");
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0); // transparent: the green gradient and the wafer show behind the scene
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-{ // a soft slate gradient instead of black
-  const c = document.createElement("canvas"); c.width = 4; c.height = 256;
-  const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, "#4a505b"); g.addColorStop(0.55, "#353941"); g.addColorStop(1, "#2a2d33");
-  x.fillStyle = g; x.fillRect(0, 0, 4, 256);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; scene.background = t;
-}
-scene.fog = new THREE.Fog(0x30343a, 12, 30);
+scene.fog = new THREE.Fog(0x202226, 12, 30);
+
+// ---------------------------------------------------------------- backdrop: a silicon wafer, as in The AI Factory
+// Drawn once to a canvas (a small hash stands in for randomness, so it looks the same on every load) and placed
+// behind the transparent WebGL canvas, so the whole disc stays in view at any camera angle and stage size;
+// index.html sizes it, fades it to 60% and turns it once every ten minutes.
+const hash = (i, j) => { const x = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return x - Math.floor(x); };
+const waferCanvas = (() => {
+  const S2 = 2048, c = document.createElement("canvas"); c.width = c.height = S2;
+  const x = c.getContext("2d"), cx = S2 / 2, R2 = S2 / 2 - 24, flat = R2 * 0.96; // flat edge (the wafer's "notch") at the bottom
+  const inside = (px, py) => (px - cx) ** 2 + (py - cx) ** 2 <= R2 * R2 && py - cx <= flat;
+  x.save();
+  x.beginPath(); x.arc(cx, cx, R2, 0, Math.PI * 2); x.clip();
+  x.beginPath(); x.rect(0, 0, S2, cx + flat); x.clip();
+  const bg = x.createRadialGradient(cx, cx * 0.9, 0, cx, cx, R2);
+  bg.addColorStop(0, "#2a3d24"); bg.addColorStop(0.7, "#17241a"); bg.addColorStop(1, "#0c140d");
+  x.fillStyle = bg; x.fillRect(0, 0, S2, S2);
+  const dw = 92, dh = 116, gap = 8; // die size and street width, px
+  for (let j = 0; j * (dh + gap) < S2; j++) for (let i = 0; i * (dw + gap) < S2; i++) {
+    const l = i * (dw + gap) + 14, t = j * (dh + gap) + 10, r = hash(i, j);
+    const whole = inside(l, t) && inside(l + dw, t) && inside(l, t + dh) && inside(l + dw, t + dh);
+    x.fillStyle = `rgba(118,185,0,${whole ? 0.05 + 0.07 * r + (r > 0.94 ? 0.22 : 0) : 0.025})`;
+    x.fillRect(l, t, dw, dh);
+    if (!whole) continue;
+    x.strokeStyle = "rgba(150,220,80,0.22)"; x.lineWidth = 1.5; x.strokeRect(l + 0.5, t + 0.5, dw - 1, dh - 1);
+    // a few functional blocks and traces inside each die
+    x.strokeStyle = "rgba(150,220,80,0.13)"; x.lineWidth = 1;
+    x.strokeRect(l + 10, t + 10, dw * 0.45, dh * 0.38);
+    x.strokeRect(l + dw * 0.6, t + 10, dw * 0.3, dh * 0.6);
+    x.strokeRect(l + 10, t + dh * 0.58, dw * 0.45, dh * 0.3);
+    x.beginPath();
+    for (let k = 0; k < 4; k++) { const yy = t + dh * (0.2 + 0.18 * k + 0.05 * hash(k, i + j)); x.moveTo(l + 6, yy); x.lineTo(l + dw - 6, yy); }
+    x.stroke();
+  }
+  // iridescence: real wafers throw a rainbow sheen, which also gives the backdrop some colour
+  x.globalCompositeOperation = "screen";
+  const sheen = x.createConicGradient(-0.6, cx, cx);
+  ["#ff4f9a", "#ffb347", "#f6ff6b", "#5dff9c", "#3fd3ff", "#7a6bff", "#ff4fd8", "#ff4f9a"].forEach((c, k, a) => sheen.addColorStop(k / (a.length - 1), c));
+  x.globalAlpha = 0.26; x.fillStyle = sheen; x.fillRect(0, 0, S2, S2);
+  x.globalCompositeOperation = "screen"; x.globalAlpha = 1;
+  const spec = x.createLinearGradient(0, 0, S2, S2); // a soft diagonal highlight
+  spec.addColorStop(0.25, "rgba(255,255,255,0)"); spec.addColorStop(0.42, "rgba(255,255,255,0.16)"); spec.addColorStop(0.6, "rgba(255,255,255,0)");
+  x.fillStyle = spec; x.fillRect(0, 0, S2, S2);
+  x.globalCompositeOperation = "source-over";
+  x.restore();
+  // the rim, with a soft glow
+  x.save(); x.shadowColor = "rgba(118,185,0,0.9)"; x.shadowBlur = 40; x.strokeStyle = "rgba(118,185,0,0.55)"; x.lineWidth = 6;
+  const a0 = Math.acos(flat / R2);
+  x.beginPath(); x.arc(cx, cx, R2, Math.PI / 2 + a0, Math.PI / 2 - a0 + Math.PI * 2); x.closePath(); x.stroke(); x.restore();
+  return c;
+})();
+// It is drawn behind the (transparent) WebGL canvas rather than in the scene, so the whole disc
+// stays in view at any camera angle and stage size; index.html sizes, fades and turns it.
+waferCanvas.id = "wafer";
+stage.prepend(waferCanvas);
+
 const cam = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
 cam.position.set(2.9, 1.9, 4.2);
 const ctl = new OrbitControls(cam, renderer.domElement);
@@ -65,10 +117,21 @@ scene.add(new THREE.HemisphereLight(0xe8eef8, 0x3a3a3a, 1.35));
 const key = new THREE.DirectionalLight(0xffffff, 1.4);
 key.position.set(3, 6, 5);
 scene.add(key);
-const floor = new THREE.Mesh(new THREE.CircleGeometry(14, 64), new THREE.MeshStandardMaterial({ color: 0x3a3e46, roughness: 0.95 }));
-floor.rotation.x = -Math.PI / 2; floor.position.y = -0.002;
-scene.add(floor);
-scene.add(new THREE.GridHelper(12, 24, 0x5a606b, 0x474c55)); // 0.5 m grid
+// A glass floor: a clear 12 × 12 m panel under the grid, with a faint sheen (brighter at the centre) and a thin
+// light edge, so the green backdrop and the wafer show straight through it.
+{
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const x = c.getContext("2d"), g = x.createRadialGradient(128, 128, 0, 128, 128, 181);
+  g.addColorStop(0, "rgba(220,245,225,0.16)"); g.addColorStop(0.6, "rgba(200,235,210,0.07)"); g.addColorStop(1, "rgba(190,230,200,0.03)");
+  x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+  const sheen = new THREE.CanvasTexture(c); sheen.colorSpace = THREE.SRGBColorSpace;
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshBasicMaterial({ map: sheen, transparent: true, depthWrite: false }));
+  glass.rotation.x = -Math.PI / 2; glass.position.y = -0.002; scene.add(glass);
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(12, 12)), new THREE.LineBasicMaterial({ color: 0xc8f0cf, transparent: true, opacity: 0.45 }));
+  edge.rotation.x = -Math.PI / 2; scene.add(edge);
+  const grid = new THREE.GridHelper(12, 24, 0x9ad889, 0x6fae62); // 0.5 m grid on the glass
+  grid.material.transparent = true; grid.material.opacity = 0.42; grid.material.depthWrite = false; scene.add(grid);
+}
 
 // ---------------------------------------------------------------- racks
 // Bottom to top, roughly the NVL72 layout: 3 power shelves, 8 compute trays, 9 NVLink switch trays,
@@ -200,8 +263,11 @@ const clock = () => CLOCK;
 let camAnim = null, curView = "gpu", curPart = "gpu";
 const fitCam = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
 
+const TRAY_TOP = 0.22 + LAYOUT.length * U; // top of the highest power shelf; the frame above it is empty
 function framePoints() {
-  const pts = [], ys = [0, RH];
+  // On phones the card overlaps the racks: frame them as if they ended at the top power shelf, so the shelves
+  // sit just below the card and only the empty top of the rack frame goes behind it.
+  const pts = [], ys = [0, phoneOverlap() && curPart !== "power" ? TRAY_TOP + 0.04 : RH];
   if (curPart === "power") ys.push(RH + 0.45 + colH(RACK_KW.rubin));
   for (const x of [-RACK_X - RW / 2, RACK_X + RW / 2]) for (const y of ys) for (const z of [-RD / 2, RD / 2]) pts.push(new THREE.Vector3(x, y, z));
   if (dims.visible && dimSprites.length) {
@@ -212,12 +278,21 @@ function framePoints() {
   return pts;
 }
 /** The free part of the stage in NDC: below the card (or the title), above the hint, with GAP margins. */
+const phoneOverlap = () => matchMedia("(max-width: 760px)").matches && card.classList.contains("floating") && !card.classList.contains("titleslide");
+/** Where the floating card sits: under the heading, or on phones lower down, about 17% of the way down the stage. */
+function placeCard() {
+  const tt = $("title"), h = stage.clientHeight || 1, under = tt.offsetTop + tt.offsetHeight + GAP_TITLE_CARD;
+  stage.style.setProperty("--card-top", `${phoneOverlap() ? Math.max(under, Math.round(h * 0.17)) : under}px`);
+}
 function freeRegion() {
   const w = stage.clientWidth || 1, h = stage.clientHeight || 1;
-  let top = $("title").offsetTop + $("title").offsetHeight + GAP;
+  let top = $("title").offsetTop + $("title").offsetHeight + GAP_TITLE_CARD;
   // the title slide covers the scene on purpose, so the racks stay framed behind it as if it weren't there
-  if (card.classList.contains("floating") && !card.classList.contains("titleslide") && card.offsetHeight > 0) top = card.offsetTop + card.offsetHeight + GAP;
-  const hint = $("hint"), bottom = GAP + (hint.offsetParent ? hint.offsetHeight + 6 : 0);
+  const hint = $("hint"), bottom = GAP_BOTTOM + (hint.offsetParent ? hint.offsetHeight + 6 : 0);
+  if (card.classList.contains("floating") && !card.classList.contains("titleslide") && card.offsetHeight > 0) {
+    const cardBottom = card.offsetTop + card.offsetHeight;
+    top = cardBottom + GAP_CARD_RACK; // on phones framePoints() lets the empty top of the racks run up behind the card
+  }
   return { l: -1 + (2 * GAP) / w, r: 1 - (2 * GAP) / w, t: 1 - (2 * top) / h, b: -1 + (2 * bottom) / h };
 }
 function fitView(name) {
@@ -350,14 +425,16 @@ function slideCard(dir, update) {
   const els = [...card.children].filter((e) => e.matches(".head, .about, .cmp, .notes, .frame"));
   els.forEach((e) => e.getAnimations().forEach((a) => a.cancel()));
   if (!dir || reduced || STILL) { update(); return; }
-  const token = ++slideToken, dx = 28 * dir;
-  const outs = els.map((e) => e.animate([{ transform: "translateX(0)", opacity: 1 }, { transform: `translateX(${-dx}px)`, opacity: 0 }], { duration: 170, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" }));
+  // zoom: going forward the old contents zoom in past the viewer and fade while the new ones grow into place;
+  // going back it runs the other way
+  const token = ++slideToken, sOut = dir > 0 ? 1.08 : 0.92, sIn = dir > 0 ? 0.92 : 1.08;
+  const outs = els.map((e) => e.animate([{ transform: "scale(1)", opacity: 1 }, { transform: `scale(${sOut})`, opacity: 0 }], { duration: 170, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" }));
   Promise.all(outs.map((a) => a.finished.catch(() => {}))).then(() => {
     if (token !== slideToken) return; // a newer change took over
     update();
     els.forEach((e, k) => {
       e.getAnimations().forEach((a) => a.cancel());
-      e.animate([{ transform: `translateX(${dx}px)`, opacity: 0 }, { transform: "translateX(0)", opacity: 1 }], { duration: 300, delay: k * 35, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
+      e.animate([{ transform: `scale(${sIn})`, opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 300, delay: k * 35, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
     });
   });
 }
@@ -368,6 +445,7 @@ function show(i, dir = Math.sign(i - idx)) {
   slideCard(dir, () => {
     const wasTitle = card.classList.contains("titleslide");
     renderCard(true);
+    placeCard(); // the title slide and the cards sit at different heights on phones
     // the card grows into the title slide or shrinks back to a spec card: settle it with a short fade
     if (wasTitle !== card.classList.contains("titleslide") && card.classList.contains("floating") && !reduced && !STILL)
       card.animate([{ opacity: 0.4, transform: "translateX(-50%) scale(0.985)" }, { opacity: 1, transform: "translateX(-50%) scale(1)" }], { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" });
@@ -412,7 +490,7 @@ function setLang(lang) {
   document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = T.s[el.dataset.i18n]));
   document.querySelectorAll("[data-i18n-title]").forEach((el) => (el.title = T.s[el.dataset.i18nTitle]));
   document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.lang === T.lang));
-  $("prev").textContent = T.s.prev; $("next").textContent = T.s.next; $("play").textContent = playing ? T.s.pause : T.s.play;
+  $("prev").textContent = T.s.prev; $("next").textContent = T.s.next; $("replay").textContent = T.s.replay; $("play").textContent = playing ? T.s.pause : T.s.play;
   document.querySelector("#panel .seg").setAttribute("aria-label", T.s.ariaLanguage);
   $("dwell").setAttribute("aria-label", T.s.ariaDwell);
   $("op").setAttribute("aria-label", T.s.ariaOpacity);
@@ -422,7 +500,17 @@ document.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => setLa
 
 // ---------------------------------------------------------------- panel controls (none on the card)
 function setPlay(p) { playing = p; $("play").textContent = p ? T.s.pause : T.s.play; $("play").classList.toggle("on", p); tourT0 = clock(); }
-$("play").onclick = () => setPlay(!playing);
+// Replay: back to the title slide (sliding back, as when stepping backwards) and play the tour from the start
+function replay() { show(0, idx === 0 ? 0 : -1); setPlay(true); }
+$("replay").onclick = replay;
+// Play / pause. Starting from the title slide moves on at once, so pressing Play there visibly does something
+// (otherwise the slide would just sit there for a full step). Replay is different: it shows the title first.
+function togglePlay() {
+  if (playing) { setPlay(false); return; }
+  setPlay(true);
+  if (idx === 0) show(1, 1);
+}
+$("play").onclick = togglePlay;
 $("next").onclick = () => show(idx + 1, 1);
 $("prev").onclick = () => show(idx - 1, -1);
 $("dwell").oninput = (e) => { dwell = e.target.value * 1000; $("dwellV").textContent = e.target.value; };
@@ -458,11 +546,12 @@ mqPhone.addEventListener("change", () => {
 });
 addEventListener("keydown", (e) => {
   if (e.target.tagName === "INPUT" || e.metaKey || e.ctrlKey || e.altKey) return;
-  if (e.code === "Space") { e.preventDefault(); setPlay(!playing); }
+  if (e.code === "Space") { e.preventDefault(); togglePlay(); }
   else if (e.code === "ArrowRight") show(idx + 1, 1);
   else if (e.code === "ArrowLeft") show(idx - 1, -1);
   else if (e.code === "KeyF") { $("camFollow").checked = !$("camFollow").checked; if ($("camFollow").checked) flyTo(partOf(idx)); }
   else if (e.code === "KeyH") togglePanel();
+  else if (e.code === "KeyR") replay();
 });
 { // swipe the card left / right: the same as ← / →
   let x0 = null;
@@ -504,13 +593,12 @@ function resize() {
   if (!w || !h) return;
   renderer.setSize(w, h);
   cam.aspect = w / h; cam.updateProjectionMatrix();
-  const tt = $("title");
-  stage.style.setProperty("--card-top", `${tt.offsetTop + tt.offsetHeight + GAP}px`);
+  placeCard();
   if (!camAnim) flyTo(curView, true);
 }
 addEventListener("resize", resize);
 if (mqPhone.matches) { wrap.classList.add("closed"); autoClosed = true; }
-setOpacity(Math.max(0, Math.min(100, +(params.get("op") ?? store.get(OPACITY_KEY) ?? 55))));
+setOpacity(Math.max(0, Math.min(100, +(params.get("op") ?? store.get(OPACITY_KEY) ?? (mqPhone.matches ? 70 : 55))))); // phones: the card overlaps the racks, so a little more opaque by default
 setTitleOpacity(Math.max(0, Math.min(100, +(params.get("top") ?? store.get(TITLE_OPACITY_KEY) ?? 90))));
 applyCardMode();
 setLang(T.lang);
@@ -564,7 +652,9 @@ requestAnimationFrame(tick);
 
 // for automated checks
 window.__twinRacks = {
-  show, setPlay, setLang, tick, get idx() { return idx; },
+  show, setPlay, setLang, tick, replay, get playing() { return playing; }, get idx() { return idx; },
   overviewStep(i) { ovT0 = clock() - i * Math.max(900, dwell / OV_STEPS.length) - 1; ovStep = -1; overviewTick(clock()); },
+  project(x, y, z) { const v = new THREE.Vector3(x, y, z).project(cam), r = renderer.domElement.getBoundingClientRect(); return { x: (v.x + 1) / 2 * r.width, y: (1 - v.y) / 2 * r.height }; },
+  trayTop: TRAY_TOP, rackH: RH,
   get lit() { const n = (a) => a.filter((m) => m.userData.hl).length; return Object.fromEntries(["gpu", "cpu", "tray", "sw"].map((k) => [k, n(parts.b300[k]) + n(parts.rubin[k])])); },
 };

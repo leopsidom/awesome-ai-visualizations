@@ -36,15 +36,16 @@ each by default. `?m=N` opens metric N (0-based) directly.
 | tap a part (touch)  | The same tooltip, for about 3 s                                          |
 | swipe the card      | Previous or next metric                                                  |
 | `←` / `→`           | Previous or next metric                                                  |
-| `space`             | Play / pause the tour                                                    |
+| `space`             | Play / pause the tour; on the title slide it moves on to the overview at once |
+| `R`                 | Replay: back to the title slide and play the tour from the start         |
 | `F`                 | Camera follows the highlighted part: on / off                            |
 | `H`                 | Hide or show the side panel                                              |
 
 Every control is in the side panel; the card carries none. The panel holds the language switch (`English` /
 `中文`, kept in `localStorage` as `twin-racks-lang` and written to the URL as `?lang=`), **Prev / Play tour /
-Next**, seconds per metric (2–12, default 5), camera follow, loop, whether the card floats over the scene or
+Next** and **↺ Replay from the start** (the same as `R`), seconds per metric (2–12, default 5), camera follow, loop, whether the card floats over the scene or
 docks as a strip below it, whether the card shows the note and source (on by default on a desktop, off on a
-phone), the card opacity (0–100%, default 55%, kept in `localStorage` as `twin-racks-card-opacity`), the title-slide
+phone), the card opacity (0–100%, default 55%, 70% on phones, kept in `localStorage` as `twin-racks-card-opacity`), the title-slide
 opacity, set separately (0–100%, default 90%, kept as `twin-racks-title-opacity`), the
 NVLink-traffic and rack-dimension layers, and the list: the two frames, then all 16 metrics with Rubin's ratio to B300.
 
@@ -53,8 +54,7 @@ NVLink-traffic and rack-dimension layers, and the list: the two frames, then all
 Before the spec cards, the same card shows two text frames, which slide like the rest and are in the tour and
 the panel's list (under "Intro"):
 
-1. **Title slide:** "Nvidia Vera Rubin vs GB300 comparison", subtitled "Nvidia's new generation of data center
-   chips — Vera Rubin against GB300", with a two-colour rule and how to begin. Like a deck's opening slide, the
+1. **Title slide:** "Nvidia Rubin vs B300" (英伟达 Rubin 与 B300), subtitled "Nvidia last two generation data center chips comparison" (英伟达新旧两代数据中心芯片对比), with a two-colour rule and how to begin. Like a deck's opening slide, the
    card grows to fill the stage under the header and covers the racks (90% opaque by default, with its own slider in the panel); the dimension labels and the hint are hidden behind it, and the camera frames the racks as
    if it weren't there, so they are ready when it shrinks back. Nothing on the racks is lit.
 2. **Overview, "Same rack, different chips":** the rack size (0.60 × 1.07 × 2.24 m, the same for both and drawn
@@ -95,15 +95,20 @@ are said once instead of on every card. Going back from the title wraps to the l
   live only here and in the title, which colours them blue and orange to match the racks.
 - **On a wide screen** the metric and chips sit on the left with the comparison and note beside them; on a phone
   they stack; in phone landscape the metric and the comparison sit side by side without the chips and notes.
-- **Changing metric:** the card's frame stays put while its contents slide out (170 ms) and the next metric's
-  slide in from the other side (300 ms), the title first and the values and the comparison a beat after it.
-  Forward (Next, →, the tour, a swipe left) slides left; back slides right; picking from the list slides in
-  the direction of the jump. A newer change cancels a slide part-way, so quick presses never queue. The
+- **Changing metric:** the card's frame stays put while its contents zoom: going forward (Next, →, the tour, a
+  swipe left) the old contents zoom in to 108% and fade (170 ms) while the next metric's grow from 92% into place
+  (300 ms), the title first and the rest a beat after it; going back runs the other way; picking from the list
+  zooms in the direction of the jump. A newer change cancels a slide part-way, so quick presses never queue. The
   numbers then count up from the previous metric's.
 
 ### Phones and narrow screens
 
 "Narrow" means a stage under 760 px wide.
+
+- The floating card sits lower on a phone, about 17% of the way down the stage, and overlaps the racks: the camera
+  frames them as if they ended at the top power shelf, so the shelves sit just below the card and only the empty
+  top of each rack frame runs up behind it. The card is 70% opaque by default there (55% on wider
+  screens); the opacity slider still sets it. The title slide keeps its usual place under the heading.
 
 - The stage sits on top and the panel below it. The panel starts closed; **☰ Controls** opens it, and while it
   is open the floating card is hidden so it doesn't cover the smaller scene.
@@ -172,18 +177,27 @@ their Chinese forms in `textZh`. Add the Chinese metric name to `metricNames` in
   scale-out network the NICs at the back (the camera turns round to them), and rack power raises a column
   above each rack in proportion to its kilowatts.
 - **The framing is fitted, not guessed.** Each view is only a direction. The distance and target are solved so
-  the racks, their dimension labels and (for power) the columns fill the stage below the card, with the same
-  16 px gap from the title to the card, the card to the racks and the racks to the bottom. It re-fits on every
+  the racks, their dimension labels and (for power) the columns fill the stage below the card, with a 24 px top margin
+  above the heading, 26 px from the heading to the card, a tight 6 px from the card to the racks and 6 px below
+  the racks (above the hint). It re-fits on every
   metric, resize, language switch and card-size change.
 - **Two colours, one meaning.** Blue is GB300 NVL72 and orange is Vera Rubin NVL72 everywhere: the title, the
   card's bars, the rack frames, the GPUs and the NVLink particles. The particles' speed is the per-GPU NVLink
   bandwidth, so Rubin's run twice as fast.
+- **The backdrop is a silicon wafer on dark grey.** The wafer is _The AI Factory_'s, so the NVIDIA scenes in the
+  gallery match: a procedurally drawn disc of dies with faint circuit blocks, a green rim and a rainbow sheen (its
+  drawing code is copied unchanged). Around it is a neutral dark-grey radial gradient (#3a3d43 to #18191c); the
+  wafer's NVIDIA-green rim and dies carry the brand colour, and the racks' blue and orange stand clear of it. It
+  sits behind the transparent WebGL canvas, so the whole disc stays in view at any camera angle and stage size;
+  it is sized to the stage, shown at 60% opacity and turns once every ten minutes (reduced motion stops it).
+  The floor is glass: a clear 12 × 12 m panel with a faint
+  sheen, a thin light edge and a semi-transparent green grid, so the backdrop and the wafer show through it. The racks keep their blue and orange, which stand clear of the green.
 - **The panel never covers the stage**, on a desktop or a phone. The card is drawn over the scene on purpose:
   it is the visualization, not a control.
 - **The page works without the 3D scene.** If `main.js` fails to load (no WebGL, or the CDN is unreachable)
   the page shows a notice in both languages. `localStorage` is read and written inside `try`, so a sandboxed
   preview that blocks it still runs.
-- `prefers-reduced-motion` drops the card slide, the camera glide, the count-up and the pulsing highlight.
+- `prefers-reduced-motion` stops the wafer turning and drops the card zoom, the camera glide, the count-up and the pulsing highlight.
 
 ### Verified
 

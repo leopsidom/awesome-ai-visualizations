@@ -18,7 +18,7 @@
       :root {
         --card-alpha: 0.55;
         --title-alpha: 0.9;
-        --bg: #2a2d33;
+        --bg: #18191c;
         --panel: #1f2023;
         --card: #1c1c1b;
         --line: #34363b;
@@ -36,13 +36,19 @@
       /* Stage and panel sit side by side (stacked on phones); the panel never covers the scene. */
       #wrap { display: flex; height: 100vh; height: 100dvh; }
       #main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-      #stage { flex: 1; position: relative; min-height: 0; overflow: hidden; }
+      #stage { flex: 1; position: relative; min-height: 0; overflow: hidden; container-type: size;
+               /* neutral dark-grey backdrop; the wafer (green rim, rainbow sheen) carries the NVIDIA colour */
+               background: radial-gradient(ellipse at 50% 40%, #3a3d43 0%, #27292e 45%, #18191c 82%); }
+      /* the wafer (drawn by main.js): centred behind the transparent WebGL canvas, faded, turning slowly */
+      #stage #wafer { position: absolute; left: 50%; top: 50%; width: min(94cqh, 120cqw); height: auto; aspect-ratio: 1;
+                      transform: translate(-50%, -50%); opacity: 0.6; pointer-events: none; animation: wafer-turn 600s linear infinite; }
+      @keyframes wafer-turn { to { transform: translate(-50%, -50%) rotate(360deg); } }
       #stage > canvas { position: absolute; inset: 0; touch-action: none; }
       #panel { width: 320px; flex: none; background: var(--panel); border-left: 1px solid var(--line); padding: 16px 18px 24px; overflow-y: auto; transition: margin-right 0.25s; }
       #wrap.closed #panel { margin-right: -320px; }
-      #toggle { position: absolute; top: 12px; right: 12px; z-index: 5; background: var(--panel); color: var(--t1); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; font: inherit; }
+      #toggle { position: absolute; top: 19px; right: 12px; z-index: 5; background: var(--panel); color: var(--t1); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; font: inherit; }
 
-      #title { position: absolute; left: 16px; top: 12px; pointer-events: none; z-index: 3; max-width: calc(100% - 160px); }
+      #title { position: absolute; left: 16px; top: 24px; pointer-events: none; z-index: 3; max-width: calc(100% - 160px); }
       #title b { font-size: 16px; }
       #title .nb { color: #6aa6ee; } #title .nr { color: #ee8556; } #title .vs { color: var(--t3); font-weight: 400; }
       .sub { color: var(--t2); font-size: 12px; }
@@ -102,7 +108,7 @@
         justify-content: center; align-items: center; text-align: center; padding: 32px 24px; background: rgba(26, 26, 25, var(--title-alpha));
         -webkit-backdrop-filter: blur(calc(var(--title-alpha) * 12px)); backdrop-filter: blur(calc(var(--title-alpha) * 12px)); } /* its own opacity slider */
       #stage.titlemode #hint { visibility: hidden; }
-      #cardrow.titleslide .frame .lab { font-size: clamp(11px, 1.2vw, 14px); letter-spacing: 0.18em; }
+      #cardrow.titleslide .frame .lab { font-size: clamp(11px, 1.2vw, 14px); letter-spacing: 0.18em; color: #76b900; } /* NVIDIA green */
       #cardrow.titleslide .frame .ft { font-size: clamp(30px, 5.2vw, 64px); font-weight: 700; line-height: 1.12; margin: 14px 0 16px; letter-spacing: -0.01em; }
       #cardrow.titleslide .frame .fs { font-size: clamp(15px, 1.9vw, 24px); max-width: 40ch; margin: 0 auto; }
       #cardrow.titleslide .frame .fh { font-size: clamp(12px, 1.1vw, 14px); margin-top: clamp(24px, 6vh, 56px); }
@@ -182,10 +188,10 @@
         #panel { width: auto; max-height: 46dvh; border-left: 0; border-top: 1px solid var(--line); margin: 0 !important; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
         #wrap.closed #panel { display: none; }
         #wrap:not(.closed) #cardrow.floating { display: none; }
-        #title { max-width: calc(100% - 120px); top: 10px; left: 12px; } #title b { font-size: 14px; } #title .sub { font-size: 11px; }
-        #hint { display: none; } #toggle { top: 10px; right: 10px; } .btn { padding: 10px; } label { padding: 6px 0; }
+        #title { max-width: calc(100% - 120px); top: 18px; left: 12px; } #title b { font-size: 14px; } #title .sub { font-size: 11px; }
+        #hint { display: none; } #toggle { top: 14px; right: 10px; } .btn { padding: 10px; } label { padding: 6px 0; }
       }
-      @media (prefers-reduced-motion: reduce) { .vbar i, #panel { transition: none; } }
+      @media (prefers-reduced-motion: reduce) { .vbar i, #panel { transition: none; } #stage #wafer { animation: none; } }
     </style>
   </head>
   <body>
@@ -227,7 +233,8 @@
         <div class="seg" role="group" aria-label="Language"><button data-lang="en">English</button><button data-lang="zh">中文</button></div>
 
         <h2 data-i18n="auto"></h2>
-        <div class="btns"><button class="btn" id="prev"></button><button class="btn" id="play"></button><button class="btn" id="next"></button></div>
+        <div class="btns"><button class="btn" id="prev"></button><button class="btn" id="play" data-i18n-title="playTitle"></button><button class="btn" id="next"></button></div>
+        <div class="btns" style="margin-top: 6px"><button class="btn" id="replay" data-i18n-title="replayTitle"></button></div>
         <label style="margin-top: 8px"><span data-i18n="dwell"></span> <b id="dwellV" style="margin-left: auto; color: var(--t1)">5</b></label>
         <input type="range" id="dwell" min="2" max="12" step="1" value="5" aria-label="Seconds per metric" />
         <label><input type="checkbox" id="camFollow" checked /><span data-i18n="camFollow"></span><small>F</small></label>
