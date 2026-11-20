@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Vera Rubin NVL72 — 3D Hardware Rack Anatomy</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --bg: #050907;
+      --panel: #0c1310;
+      --panel-elev: #131e19;
+      --border: #1f3328;
+      --text: #edf6f0;
+      --muted: #8ea899;
+      --nv-green: #76b900;
+      --nv-lime: #a8e03a;
+      --nv-neon: #d4ff66;
+      --cyan: #22d3ee;
+      --blue: #38bdf8;
+      --amber: #f59e0b;
+      --coral: #fb7185;
+      --purple: #a855f7;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --top-inset: var(--safe-top);
+      --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", Roboto, Inter, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Extra top clearance when Mobile Status Bar Safe-Area is toggled */
+    body.mobile-capture { --top-inset: max(calc(var(--safe-top) + 6px), 44px); }
+
+    /* Non-overlapping split layout: 3D Stage + Collapsible Control Panel */
+    .app {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      padding-top: var(--top-inset);
+      background: var(--bg);
+      transition: padding-top 0.25s ease;
+    }
+
+    .status-bar-guide {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--top-inset);
+      background: rgba(5, 9, 7, 0.96);
+      border-bottom: 1px dashed rgba(118, 185, 0, 0.30);
+      z-index: 70;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(168, 224, 58, 0.65);
+      pointer-events: none;
+    }
+    body.mobile-capture .status-bar-guide { display: flex; }
+    body.clean-capture .status-bar-guide,
+    body.recording-play .status-bar-guide {
+      border-bottom-color: transparent;
+      color: transparent;
+      background: #050907;
+    }
+
+    /* 3D Stage Container — strictly never overlapped by Control Panel */
+    #stage-wrap {
+      position: relative;
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: #050907;
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #canvas-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+    #canvas-container:active { cursor: grabbing; }
+    #canvas-container.hover-part { cursor: pointer; }
+
+    /* Projected 3D Callout Pins */
+    #overlay-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 6;
+    }
+
+    .callout-pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      background: rgba(7, 13, 10, 0.86);
+      border: 1px solid rgba(118, 185, 0, 0.52);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      pointer-events: auto;
+      cursor: pointer;
+      transition: border-color 0.16s, background 0.16s;
+    }
+    .callout-pin:hover, .callout-pin.selected {
+      border-color: var(--nv-neon);
+      background: rgba(18, 34, 22, 0.96);
+    }
+    .callout-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .pin-short { display: none; }
+    body.compact-pins .pin-full { display: none; }
+    body.compact-pins .pin-short { display: inline; }
+    body.compact-pins .callout-pin { font-size: 10.5px; padding: 3px 7px; gap: 5px; }
+
+    /* Compact Top Stage HUD */
+    .stage-top {
+      position: absolute;
+      top: 8px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      pointer-events: none;
+      z-index: 12;
+      transition: opacity 0.25s ease;
+    }
+
+    .brand-card {
+      background: rgba(6, 11, 9, 0.80);
+      backdrop-filter: blur(11px);
+      -webkit-backdrop-filter: blur(11px);
+      border: 1px solid rgba(118, 185, 0, 0.34);
+      border-left: 3px solid var(--nv-green);
+      border-radius: 10px;
+      padding: 9px 14px 10px;
+      max-width: 700px;
+      min-width: 0;
+      flex: 0 1 700px;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .brand-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--nv-lime);
+      flex-wrap: wrap;
+    }
+    .badge-chip {
+      background: rgba(118, 185, 0, 0.18);
+      border: 1px solid rgba(118, 185, 0, 0.55);
+      color: var(--nv-lime);
+      padding: 1px 7px;
+      border-radius: 99px;
+      font-size: 9.5px;
+    }
+    .brand-title { font-size: 17px; font-weight: 700; line-height: 1.24; color: var(--text); }
+    .brand-summary { font-size: 13px; line-height: 1.4; color: #c5d8cc; }
+    .brand-summary strong { color: var(--nv-lime); }
+    .brand-summary.hidden-cap { display: none; }
+
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--nv-green); box-shadow: 0 0 8px var(--nv-green); flex-shrink: 0; }
+    .live-dot.rec { background: var(--coral); box-shadow: 0 0 10px var(--coral); animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    .flow-legend-strip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; color: var(--muted); }
+    .flow-legend-strip:empty { display: none; }
+    .leg-item { display: inline-flex; align-items: center; gap: 4px; }
+    .leg-swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+    .progress-track { width: 100%; height: 3px; background: rgba(255, 255, 255, 0.09); border-radius: 99px; overflow: hidden; cursor: pointer; margin-top: 2px; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--nv-green), var(--nv-neon)); border-radius: 99px; transition: width 0.12s linear; }
+
+    /* Compact Bottom-Right Floating Action Dock */
+    .stage-bottom-actions {
+      position: absolute;
+      right: 12px;
+      bottom: max(10px, env(safe-area-inset-bottom, 0px));
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 4px;
+      border-radius: 9px;
+      background: rgba(6, 11, 9, 0.76);
+      border: 1px solid rgba(118, 185, 0, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      pointer-events: auto;
+      z-index: 12;
+      transition: opacity 0.25s ease;
+    }
+    .stage-bottom-actions .hud-btn { padding: 4px 8px; font-size: 10.5px; border-radius: 6px; gap: 4px; }
+
+    .hud-btn {
+      background: rgba(12, 19, 16, 0.88);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: all 0.16s ease;
+    }
+    .hud-btn:hover { border-color: var(--nv-green); background: rgba(19, 30, 25, 0.96); }
+    .hud-btn.primary { background: rgba(118, 185, 0, 0.22); border-color: var(--nv-green); color: var(--nv-neon); }
+    .hud-btn.primary:hover { background: rgba(118, 185, 0, 0.34); }
+    .hud-btn.playing { background: rgba(245, 158, 11, 0.22); border-color: var(--amber); color: #fde68a; }
+
+    /* Dedicated Non-Overlapping Control Panel */
+    #control-panel {
+      width: 350px;
+      flex: 0 0 350px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.26s ease, flex-basis 0.26s ease, height 0.26s ease;
+      z-index: 20;
+    }
+    #control-panel.collapsed { width: 0; flex-basis: 0; border-left-width: 0; }
+
+    .panel-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 12px 15px; border-bottom: 1px solid var(--border); background: rgba(118, 185, 0, 0.07); flex-shrink: 0;
+    }
+    .panel-top h2 { font-size: 11.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--nv-lime); }
+    .panel-top-right { display: flex; align-items: center; gap: 6px; }
+    .gallery-link {
+      color: var(--muted); text-decoration: none; font-size: 11px; border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 8px; transition: color 0.15s, border-color 0.15s;
+    }
+    .gallery-link:hover { color: var(--nv-lime); border-color: var(--nv-green); }
+    .panel-close {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-family: inherit;
+    }
+    .panel-close:hover { color: var(--text); border-color: var(--nv-green); }
+
+    .panel-body { flex: 1 1 auto; overflow-y: auto; padding: 13px 15px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .ctrl-group { display: flex; flex-direction: column; gap: 7px; }
+    .ctrl-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .ctrl-label .val { color: var(--nv-lime); text-transform: none; letter-spacing: 0; }
+
+    .transport-row { display: grid; grid-template-columns: 34px 1fr 34px 34px; gap: 6px; }
+    .seg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    .seg-grid.three { grid-template-columns: repeat(3, 1fr); }
+
+    .seg-btn {
+      background: var(--panel-elev); border: 1px solid var(--border); color: var(--muted);
+      border-radius: 7px; padding: 7px 6px; font-size: 11px; font-weight: 600; cursor: pointer;
+      text-align: center; font-family: inherit; transition: all 0.15s ease;
+    }
+    .seg-btn:hover { color: var(--text); border-color: #365743; }
+    .seg-btn.active { background: rgba(118, 185, 0, 0.2); border-color: var(--nv-green); color: var(--nv-lime); }
+
+    .tier-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--panel-elev); border: 1px solid var(--border); color: var(--text);
+      border-radius: 7px; padding: 7px 10px; font-size: 11.5px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.15s ease; text-align: left;
+    }
+    .tier-btn:hover { border-color: #395c47; }
+    .tier-btn.active { border-color: var(--nv-green); background: rgba(118, 185, 0, 0.17); color: var(--nv-neon); }
+    .tier-btn .meta { font-size: 10px; color: var(--muted); font-weight: 500; }
+
+    /* Selected Part Inspector Card */
+    .inspector-card {
+      background: rgba(9, 17, 13, 0.92);
+      border: 1px solid rgba(118, 185, 0, 0.42);
+      border-left: 3px solid var(--nv-lime);
+      border-radius: 8px;
+      padding: 10px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .inspector-card.empty {
+      border-color: var(--border);
+      border-left-color: #365743;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.42;
+    }
+    .insp-title { font-size: 12.5px; font-weight: 700; color: var(--nv-neon); line-height: 1.25; }
+    .insp-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+    .insp-desc { font-size: 11.5px; line-height: 1.42; color: #cfe0d5; }
+    .insp-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .insp-m { background: rgba(19, 30, 25, 0.85); border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; }
+    .insp-m .k { font-size: 9px; text-transform: uppercase; color: var(--muted); }
+    .insp-m .v { font-size: 11px; font-weight: 700; color: var(--text); margin-top: 1px; }
+    .insp-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .insp-actions .hud-btn { flex: 1 1 auto; justify-content: center; padding: 6px 8px; font-size: 11px; }
+
+    .chapter-list { display: flex; flex-direction: column; gap: 4px; max-height: 168px; overflow-y: auto; padding-right: 2px; }
+    .ch-item {
+      display: flex; align-items: center; gap: 8px; background: var(--panel-elev); border: 1px solid var(--border);
+      border-radius: 7px; padding: 6px 8px; font-size: 11px; color: var(--muted); cursor: pointer;
+      text-align: left; font-family: inherit; transition: all 0.15s ease;
+    }
+    .ch-item:hover { color: var(--text); border-color: #365743; }
+    .ch-item.active { background: rgba(118, 185, 0, 0.17); border-color: var(--nv-green); color: var(--text); }
+    .ch-num { font-size: 9.5px; font-weight: 800; color: var(--nv-lime); min-width: 18px; }
+
+    input[type="range"] { width: 100%; accent-color: var(--nv-green); cursor: pointer; }
+
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--panel-elev); border: 1px solid var(--border); border-radius: 7px;
+      padding: 7px 10px; font-size: 11.5px; cursor: pointer; user-select: none;
+    }
+    .toggle-row input { accent-color: var(--nv-green); width: 14px; height: 14px; cursor: pointer; }
+
+    .spec-grid-mini {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      background: rgba(5, 10, 8, 0.72); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px;
+    }
+    .sg-cell .k { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .sg-cell .v { font-size: 11.5px; font-weight: 700; color: var(--text); margin-top: 1px; }
+
+    body.hide-header-card .stage-top,
+    body.hide-header-card .stage-top .brand-card,
+    body.title-slide-active .stage-top { opacity: 0; pointer-events: none; }
+
+    /* Opening Presentation Title Frame (Slide 1 on top of the 48U rack when playback begins) */
+    .title-slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      pointer-events: none;
+      z-index: 15;
+      opacity: 0;
+      visibility: hidden;
+      will-change: opacity, transform;
+    }
+    .title-slide-inner {
+      width: min(760px, 92%);
+      text-align: center;
+      padding: 34px 32px 36px;
+      border-radius: 16px;
+      background: radial-gradient(ellipse at center, rgba(6, 13, 10, 0.86) 0%, rgba(6, 13, 10, 0.66) 70%, rgba(6, 13, 10, 0.32) 100%);
+      border: 1px solid rgba(118, 185, 0, 0.36);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(212, 255, 102, 0.16);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .ts-eyebrow {
+      font-size: clamp(10px, 1.3vw, 12px);
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--nv-lime);
+      opacity: 0.92;
+    }
+    .ts-title {
+      font-size: clamp(30px, 5.4vw, 62px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.08;
+      background: linear-gradient(180deg, #ffffff 15%, #dff5c4 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 6px 28px rgba(118, 185, 0, 0.22);
+    }
+    .ts-accent {
+      width: 78px;
+      height: 3px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--nv-green), var(--nv-neon));
+      box-shadow: 0 0 16px rgba(118, 185, 0, 0.65);
+    }
+    .ts-sub {
+      font-size: clamp(14px, 2.0vw, 22px);
+      font-weight: 500;
+      line-height: 1.42;
+      color: #d6e8dd;
+      max-width: 560px;
+    }
+
+    body.clean-capture .stage-top,
+    body.clean-capture .stage-bottom-actions,
+    body.clean-capture #control-panel { opacity: 0; pointer-events: none; }
+    body.clean-capture #control-panel { width: 0 !important; flex-basis: 0 !important; height: 0 !important; border: none !important; }
+    body.recording-play .stage-bottom-actions .non-rec { display: none; }
+    body.recording-play .stage-bottom-actions {
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+    body.recording-play .stage-bottom-actions::before {
+      content: "";
+      position: absolute;
+      inset: -32px -14px -12px -36px;
+      pointer-events: auto;
+    }
+    body.recording-play .stage-bottom-actions:hover,
+    body.recording-play .stage-bottom-actions:focus-within {
+      opacity: 1;
+    }
+
+    #restore-clean-btn {
+      display: none; position: fixed; bottom: 14px; right: 14px; z-index: 80;
+      background: rgba(10, 18, 13, 0.78); border: 1px solid rgba(118, 185, 0, 0.45);
+      color: var(--nv-lime); border-radius: 99px; padding: 6px 12px; font-size: 11px;
+      font-weight: 600; cursor: pointer; backdrop-filter: blur(8px); font-family: inherit;
+    }
+    body.clean-capture #restore-clean-btn { display: inline-flex; }
+
+    /* Mobile Responsive: Top Status-Bar Clearance + 3D Stage ABOVE Collapsible Bottom Drawer */
+    @media (max-width: 860px) {
+      :root { --top-inset: max(calc(var(--safe-top) + 6px), 44px); }
+      .status-bar-guide { border-bottom-color: transparent; color: transparent; }
+      .app { flex-direction: column; }
+      #control-panel {
+        width: 100%;
+        flex: 0 0 44dvh;
+        border-left: none;
+        border-top: 1px solid var(--border);
+      }
+      #control-panel.collapsed { width: 100%; flex-basis: 0; height: 0; border-top-width: 0; }
+      .stage-top { top: 6px; left: 0; right: 0; justify-content: center; }
+      .brand-card { padding: 8px 11px; width: 92%; max-width: 92%; flex: 0 0 92%; }
+      .brand-title { font-size: 15.5px; }
+      .brand-summary {
+        font-size: 12px;
+        line-height: 1.36;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .callout-pin { font-size: 11px; padding: 3px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="status-bar-guide" data-i18n="statusBarGuide">Mobile Status Bar Safe-Area (44px clearance)</div>
+
+  <div class="app">
+    <div id="stage-wrap">
+      <div id="canvas-container"></div>
+      <div id="overlay-layer"></div>
+
+      <div class="title-slide" id="title-slide" aria-hidden="true">
+        <div class="title-slide-inner">
+          <div class="ts-eyebrow" data-i18n="tsEyebrow">NVIDIA ARCHITECTURE ANATOMY</div>
+          <h1 class="ts-title" data-i18n="tsTitle">Vera Rubin NVL72</h1>
+          <div class="ts-accent"></div>
+          <p class="ts-sub" data-i18n="tsSub">A Rubin GPU based rack for data centers and AI</p>
+        </div>
+      </div>
+
+      <div class="stage-top">
+        <div class="brand-card">
+          <div class="brand-eyebrow">
+            <span class="live-dot" id="live-dot"></span>
+            <span id="cap-chapter">VERA RUBIN NVL72 · ANATOMY</span>
+            <span class="badge-chip" id="stage-badge">Tier 1 · 48U Rack</span>
+          </div>
+          <div class="brand-title" id="hdr-title">Vera Rubin NVL72 — MGX v3 Cable-Free 48U Architecture</div>
+          <div class="brand-summary" id="cap-text"></div>
+          <div class="flow-legend-strip" id="flow-legend"></div>
+          <div class="progress-track" id="progress-track" data-i18n-title="tipProgress" title="Click to jump in Tour">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-bottom-actions">
+        <button class="hud-btn primary" id="btn-top-play">▶ Play Tour</button>
+        <button class="hud-btn non-rec" id="btn-toggle-panel" data-i18n="btnControls">☰ Controls</button>
+        <button class="hud-btn non-rec" id="btn-clean-capture" data-i18n="btnClean" data-i18n-title="tipClean" title="Hide all UI for clean capture">📷 Clean</button>
+      </div>
+    </div>
+
+    <aside id="control-panel">
+      <div class="panel-top">
+        <h2 data-i18n="panelTitle">Vera Rubin Anatomy</h2>
+        <div class="panel-top-right">
+          <a class="gallery-link" href="../" data-i18n="backGallery">← Gallery</a>
+          <button class="panel-close" id="btn-close-panel" data-i18n="btnHide">Hide ✕</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <!-- Language Switcher -->
+        <div class="ctrl-group">
+          <div class="ctrl-label" data-i18n="lblLocale">Language / 语言</div>
+          <div class="seg-grid" id="locale-btns">
+            <button class="seg-btn active" data-locale="en">English</button>
+            <button class="seg-btn" data-locale="zh">中文 (简体)</button>
+          </div>
+        </div>
+
+        <!-- 4-Tier Anatomy Drill-Down -->
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span data-i18n="lblTiers">4-Tier Anatomy Drill-Down</span>
+            <span class="val" id="tier-val">Tier 1/4</span>
+          </div>
+          <button class="tier-btn active" data-tier="rack">
+            <span data-i18n="tRack">1. 48U MGX v3 Rack</span>
+            <span class="meta" data-i18n="metaRack">10 + 9 + 8</span>
+          </button>
+          <button class="tier-btn" data-tier="compute_tray">
+            <span data-i18n="tCompute">2. 1U Compute Tray</span>
+            <span class="meta" data-i18n="metaCompute">4 Rubin · 2 Vera</span>
+          </button>
+          <button class="tier-btn" data-tier="switch_tray">
+            <span data-i18n="tSwitch">3. 1U NVLink 6 Switch Tray</span>
+            <span class="meta" data-i18n="metaSwitch">260 TB/s Fabric</span>
+          </button>
+          <button class="tier-btn" data-tier="silicon">
+            <span data-i18n="tSilicon">4. Vera-Rubin 1:2 Superchip</span>
+            <span class="meta" data-i18n="metaSilicon">Twin GPUs · Vera · SOCAMM</span>
+          </button>
+        </div>
+
+        <!-- Selected Part Inspector -->
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span data-i18n="lblInspector">Selected Part Inspector</span>
+            <span class="val" id="insp-state-val">Click 3D Part</span>
+          </div>
+          <div class="inspector-card empty" id="inspector-card"></div>
+        </div>
+
+        <!-- Tier-Specific Orientation / Explode Mode / Blade Isolation -->
+        <div class="ctrl-group" id="orient-group">
+          <div class="ctrl-label">
+            <span data-i18n="lblOrient">Rack Orientation (180° Spin)</span>
+            <span class="val" id="orient-val">Front (0°)</span>
+          </div>
+          <div class="seg-grid" id="orient-btns">
+            <button class="seg-btn active" data-flip="0" data-i18n="oFront">Front (0°)</button>
+            <button class="seg-btn" data-flip="1" data-i18n="oRear">Rear (180°)</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group" id="isolate-blade-group" style="display:none;">
+          <label class="toggle-row">
+            <span data-i18n="togIsolateBlade">Isolate 1U Blade (Hide Ghost Rack)</span>
+            <input type="checkbox" id="chk-isolate-blade" />
+          </label>
+        </div>
+
+        <div class="ctrl-group" id="explode-mode-group" style="display:none;">
+          <div class="ctrl-label" data-i18n="lblExplodeMode">Superchip Explode Mode</div>
+          <div class="seg-grid" id="explode-mode-btns">
+            <button class="seg-btn active" data-emode="left" data-i18n="emLeft">GPU A Exploded (Compare)</button>
+            <button class="seg-btn" data-emode="both" data-i18n="emBoth">Both Twins Exploded</button>
+          </div>
+        </div>
+
+        <!-- Explode Slider -->
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span data-i18n="lblExplode">Explode Separation</span>
+            <span class="val" id="explode-val">0%</span>
+          </div>
+          <input type="range" id="explode-slider" min="0" max="100" value="0" />
+        </div>
+
+        <!-- Live Functional Flow Overlays -->
+        <div class="ctrl-group">
+          <div class="ctrl-label" data-i18n="lblFlows">Live Functional Flow Overlays</div>
+          <label class="toggle-row">
+            <span data-i18n="togNvlinkFlow">⚡ 260 TB/s NVLink 6 Data Pulses</span>
+            <input type="checkbox" id="chk-nvlink-flow" checked />
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="togThermalFlow">💧 100% Liquid Cooling Thermal Loop</span>
+            <input type="checkbox" id="chk-thermal-flow" />
+          </label>
+        </div>
+
+        <!-- Guided 8-Chapter Walkthrough -->
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span data-i18n="lblTour">Guided Tour (8 Chapters)</span>
+            <span class="val" id="speed-val">1.0×</span>
+          </div>
+          <div class="transport-row">
+            <button class="seg-btn" id="btn-prev-ch" data-i18n-title="tipPrev" title="Previous Chapter (←)">⏮</button>
+            <button class="hud-btn primary" id="btn-play-main" style="justify-content:center;">▶ Play Tour</button>
+            <button class="seg-btn" id="btn-next-ch" data-i18n-title="tipNext" title="Next Chapter (→)">⏭</button>
+            <button class="seg-btn" id="btn-restart-ch" data-i18n-title="tipRestart" title="Restart Tour (R)">↺</button>
+          </div>
+          <div class="seg-grid three" id="speed-btns">
+            <button class="seg-btn" data-speed="0.75" data-i18n="spdSlow">0.75×</button>
+            <button class="seg-btn active" data-speed="1" data-i18n="spdNorm">1.0×</button>
+            <button class="seg-btn" data-speed="1.4" data-i18n="spdFast">1.4×</button>
+          </div>
+          <label class="toggle-row">
+            <span data-i18n="togAutoHide">Auto-Hide Panel While Playing</span>
+            <input type="checkbox" id="chk-autohide" checked />
+          </label>
+          <div class="chapter-list" id="chapter-list"></div>
+        </div>
+
+        <!-- Visual & Recording Options -->
+        <div class="ctrl-group">
+          <div class="ctrl-label" data-i18n="lblVisual">Visual &amp; Mobile Capture</div>
+          <label class="toggle-row">
+            <span data-i18n="togPins">3D Callout Pins (View-Aware)</span>
+            <input type="checkbox" id="chk-pins" checked />
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="togXray">X-Ray / Cutaway Chassis</span>
+            <input type="checkbox" id="chk-xray" />
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="togBloom">Cinema Bloom Glow (4× MSAA)</span>
+            <input type="checkbox" id="chk-bloom" checked />
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="togHeaderCard">Show Header Card</span>
+            <input type="checkbox" id="chk-header-card" checked />
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="togCaption">Show Header Summary</span>
+            <input type="checkbox" id="chk-caption" checked />
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="togMobile">Mobile Status Bar Safe-Area</span>
+            <input type="checkbox" id="chk-mobile-safe" />
+          </label>
+          <label class="toggle-row">
+            <span data-i18n="togOrbit">Auto-Orbit Camera</span>
+            <input type="checkbox" id="chk-orbit" />
+          </label>
+        </div>
+
+        <button class="hud-btn primary" id="btn-reset-cam" style="justify-content:center;" data-i18n="btnResetCam">↺ Reset Camera Framing</button>
+
+        <!-- Vera Rubin NVL72 Verified Spec Summary -->
+        <div class="spec-grid-mini">
+          <div class="sg-cell"><div class="k" data-i18n="specComputeK">Compute (FP8 / FP4)</div><div class="v" style="color:var(--nv-lime)" data-i18n="specComputeV">1,260 PF · 2.52/3.60 EF</div></div>
+          <div class="sg-cell"><div class="k" data-i18n="specHbmK">HBM4 (GPU / Rack)</div><div class="v" style="color:var(--cyan)" data-i18n="specHbmV">288 GB · 1,584 TB/s</div></div>
+          <div class="sg-cell"><div class="k" data-i18n="specNvlK">NVLink 6 Domain</div><div class="v" style="color:var(--amber)" data-i18n="specNvlV">260 TB/s (72 GPUs)</div></div>
+          <div class="sg-cell"><div class="k" data-i18n="specMemK">Fast Memory Pool</div><div class="v" style="color:var(--blue)" data-i18n="specMemV">74.74 TB (54 TB Vera)</div></div>
+          <div class="sg-cell"><div class="k" data-i18n="specNicK">Scale-Out SuperNIC</div><div class="v" style="color:var(--purple)" data-i18n="specNicV">ConnectX-9 · 1,600G</div></div>
+          <div class="sg-cell"><div class="k" data-i18n="specPwrK">Power &amp; Cooling</div><div class="v" style="color:var(--coral)" data-i18n="specPwrV">~230 kW* · 100% DLC</div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <button id="restore-clean-btn" data-i18n="btnExitClean">☰ Exit Clean View</button>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
