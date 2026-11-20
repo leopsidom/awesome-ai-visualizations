@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <radialGradient id="nvGlow" cx="52%" cy="68%" r="55%">
+      <stop offset="0%" stop-color="#76b900" stop-opacity="0.34"/>
+      <stop offset="48%" stop-color="#3c6608" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#050907" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fp8Grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a8e03a"/>
+      <stop offset="100%" stop-color="#4e7c00"/>
+    </linearGradient>
+    <linearGradient id="fp4Grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d4ff66"/>
+      <stop offset="100%" stop-color="#76b900"/>
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Obsidian + NVIDIA Green Studio Backdrop -->
+  <rect width="1280" height="720" fill="#050907"/>
+  <rect width="1280" height="720" fill="url(#nvGlow)"/>
+
+  <!-- Perspective Grid Floor -->
+  <g stroke="#244019" stroke-width="1" opacity="0.55">
+    <line x1="60" y1="540" x2="1220" y2="540"/>
+    <line x1="20" y1="590" x2="1260" y2="590"/>
+    <line x1="0" y1="648" x2="1280" y2="648"/>
+    <line x1="180" y1="500" x2="40" y2="720"/>
+    <line x1="380" y1="500" x2="290" y2="720"/>
+    <line x1="640" y1="500" x2="640" y2="720"/>
+    <line x1="900" y1="500" x2="990" y2="720"/>
+    <line x1="1100" y1="500" x2="1240" y2="720"/>
+  </g>
+
+  <!-- Subtle Horizontal 3D Chart Gridlines -->
+  <g stroke="#244030" stroke-width="1" stroke-dasharray="4 6" opacity="0.6">
+    <line x1="130" y1="150" x2="1150" y2="150"/>
+    <line x1="130" y1="250" x2="1150" y2="250"/>
+    <line x1="130" y1="350" x2="1150" y2="350"/>
+    <line x1="130" y1="450" x2="1150" y2="450"/>
+  </g>
+
+  <!-- 1.0 ExaFLOPS Threshold Plane -->
+  <line x1="130" y1="360" x2="1150" y2="360" stroke="#d4ff66" stroke-width="1.6" opacity="0.65"/>
+  <rect x="148" y="330" width="186" height="24" rx="5" fill="#060c08" stroke="#d4ff66" stroke-opacity="0.7"/>
+  <text x="241" y="346" fill="#d4ff66" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" text-anchor="middle">1.0 ExaFLOPS Threshold</text>
+
+  <!-- 3D Comparative Bar Pairs (Compute FP8 + FP4 + Peak Cap) -->
+  <!-- H100 -->
+  <rect x="192" y="514" width="38" height="24" fill="url(#fp8Grad)" rx="2"/>
+  <text x="211" y="504" fill="#a8e03a" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" text-anchor="middle">63 PF</text>
+
+  <!-- H200 -->
+  <rect x="394" y="514" width="38" height="24" fill="url(#fp8Grad)" rx="2"/>
+  <text x="413" y="504" fill="#a8e03a" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" text-anchor="middle">63 PF</text>
+
+  <!-- B200 -->
+  <rect x="572" y="458" width="42" height="80" fill="url(#fp8Grad)" rx="2"/>
+  <rect x="622" y="394" width="42" height="144" fill="url(#fp4Grad)" rx="2"/>
+  <rect x="622" y="294" width="42" height="100" fill="#d4ff66" fill-opacity="0.28" stroke="#d4ff66" stroke-dasharray="4 3" rx="2"/>
+  <text x="593" y="447" fill="#a8e03a" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" text-anchor="middle">360 PF</text>
+  <text x="643" y="282" fill="#d4ff66" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" text-anchor="middle">1.44 EF</text>
+
+  <!-- B300 -->
+  <rect x="780" y="458" width="42" height="80" fill="url(#fp8Grad)" rx="2"/>
+  <rect x="830" y="336" width="42" height="202" fill="url(#fp4Grad)" rx="2"/>
+  <rect x="830" y="294" width="42" height="42" fill="#d4ff66" fill-opacity="0.28" stroke="#d4ff66" stroke-dasharray="4 3" rx="2"/>
+  <text x="801" y="447" fill="#a8e03a" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" text-anchor="middle">360 PF</text>
+  <text x="851" y="282" fill="#d4ff66" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" text-anchor="middle">1.44 EF</text>
+
+  <!-- Vera Rubin -->
+  <rect x="988" y="310" width="46" height="228" fill="url(#fp8Grad)" rx="2"/>
+  <rect x="1042" y="198" width="46" height="340" fill="url(#fp4Grad)" rx="2"/>
+  <rect x="1042" y="106" width="46" height="92" fill="#d4ff66" fill-opacity="0.30" stroke="#d4ff66" stroke-dasharray="4 3" rx="2"/>
+  <text x="1011" y="298" fill="#a8e03a" font-family="ui-monospace, Menlo, monospace" font-size="13" font-weight="700" text-anchor="middle">1,260 PF</text>
+  <text x="1065" y="94" fill="#d4ff66" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700" text-anchor="middle">3.60 EF Peak</text>
+
+  <!-- 5 Miniature 3D Hardware Rack Podium Icons Along Front Axis -->
+  <!-- H100 Mini Rack -->
+  <g transform="translate(188, 534)">
+    <rect x="0" y="0" width="52" height="90" rx="3" fill="#141d22" stroke="#fb7185" stroke-width="1.5"/>
+    <rect x="5" y="10" width="42" height="14" fill="#2a3740"/><rect x="5" y="28" width="42" height="14" fill="#2a3740"/>
+    <rect x="5" y="46" width="42" height="14" fill="#2a3740"/><rect x="5" y="64" width="42" height="14" fill="#2a3740"/>
+  </g>
+  <!-- H200 Mini Rack -->
+  <g transform="translate(390, 534)">
+    <rect x="0" y="0" width="52" height="90" rx="3" fill="#141d22" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect x="5" y="10" width="42" height="14" fill="#223542"/><rect x="5" y="28" width="42" height="14" fill="#223542"/>
+    <rect x="5" y="46" width="42" height="14" fill="#223542"/><rect x="5" y="64" width="42" height="14" fill="#223542"/>
+  </g>
+  <!-- B200 NVL72 Mini Rack -->
+  <g transform="translate(592, 534)">
+    <rect x="0" y="0" width="52" height="90" rx="3" fill="#101c22" stroke="#22d3ee" stroke-width="1.5"/>
+    <rect x="5" y="10" width="42" height="22" fill="#173848"/>
+    <rect x="5" y="35" width="42" height="18" fill="url(#amberGrad)"/>
+    <rect x="5" y="56" width="42" height="18" fill="#173848"/>
+  </g>
+  <!-- B300 NVL72 Mini Rack -->
+  <g transform="translate(800, 534)">
+    <rect x="0" y="0" width="52" height="90" rx="3" fill="#101c22" stroke="#06b6d4" stroke-width="1.5"/>
+    <rect x="5" y="10" width="42" height="22" fill="#133d4f"/>
+    <rect x="5" y="35" width="42" height="18" fill="url(#amberGrad)"/>
+    <rect x="5" y="56" width="42" height="18" fill="#133d4f"/>
+  </g>
+  <!-- Vera Rubin NVL72 Mini Rack -->
+  <g transform="translate(1012, 534)">
+    <rect x="0" y="0" width="52" height="90" rx="3" fill="#101e14" stroke="#76b900" stroke-width="2"/>
+    <rect x="5" y="10" width="42" height="22" fill="#254c12"/>
+    <rect x="5" y="35" width="42" height="18" fill="url(#amberGrad)"/>
+    <rect x="5" y="56" width="42" height="18" fill="#254c12"/>
+  </g>
+
+  <!-- Floor Badges -->
+  <g font-family="ui-monospace, Menlo, monospace" text-anchor="middle">
+    <rect x="150" y="636" width="128" height="44" rx="7" fill="#070d0a" stroke="#fb7185" stroke-opacity="0.5"/>
+    <text x="214" y="654" fill="#edf6f0" font-size="14" font-weight="700">H100</text>
+    <text x="214" y="670" fill="#a8e03a" font-size="10">32 GPUs · 4N</text>
+
+    <rect x="352" y="636" width="128" height="44" rx="7" fill="#070d0a" stroke="#38bdf8" stroke-opacity="0.5"/>
+    <text x="416" y="654" fill="#edf6f0" font-size="14" font-weight="700">H200</text>
+    <text x="416" y="670" fill="#a8e03a" font-size="10">32 GPUs · 4N</text>
+
+    <rect x="554" y="636" width="128" height="44" rx="7" fill="#070d0a" stroke="#22d3ee" stroke-opacity="0.5"/>
+    <text x="618" y="654" fill="#edf6f0" font-size="14" font-weight="700">B200</text>
+    <text x="618" y="670" fill="#a8e03a" font-size="10">72 GPUs · 4NP</text>
+
+    <rect x="762" y="636" width="128" height="44" rx="7" fill="#070d0a" stroke="#06b6d4" stroke-opacity="0.5"/>
+    <text x="826" y="654" fill="#edf6f0" font-size="14" font-weight="700">B300</text>
+    <text x="826" y="670" fill="#a8e03a" font-size="10">72 GPUs · 4NP</text>
+
+    <rect x="968" y="636" width="142" height="44" rx="7" fill="#112014" stroke="#76b900" stroke-width="1.5"/>
+    <text x="1039" y="654" fill="#edf6f0" font-size="14" font-weight="700">Vera Rubin</text>
+    <text x="1039" y="670" fill="#d4ff66" font-size="10">72 GPUs · N3P</text>
+  </g>
+
+  <!-- Title Card Top Left -->
+  <rect x="44" y="38" width="440" height="88" rx="10" fill="#070d0a" fill-opacity="0.86" stroke="#76b900" stroke-opacity="0.45"/>
+  <rect x="44" y="38" width="4" height="88" rx="2" fill="#76b900"/>
+  <text x="64" y="64" fill="#a8e03a" font-family="ui-monospace, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="2">NVIDIA 5-GEN HARDWARE TWIN</text>
+  <text x="64" y="90" fill="#edf6f0" font-family="ui-monospace, Menlo, monospace" font-size="21" font-weight="700">H100 → Vera Rubin</text>
+  <text x="64" y="112" fill="#8ea899" font-family="ui-monospace, Menlo, monospace" font-size="12">48U Rack Anatomy · Tray &amp; Die Drill-Down · 3D Bars</text>
+</svg>
