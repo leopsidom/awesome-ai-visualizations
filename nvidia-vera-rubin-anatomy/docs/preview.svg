@@ -1,0 +1,211 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <radialGradient id="nvGlow" cx="46%" cy="58%" r="58%">
+      <stop offset="0%" stop-color="#76b900" stop-opacity="0.30"/>
+      <stop offset="50%" stop-color="#2c580a" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#050907" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cyanGlow" cx="76%" cy="44%" r="36%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#050907" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="amberGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a8e03a"/>
+      <stop offset="50%" stop-color="#76b900"/>
+      <stop offset="100%" stop-color="#4e7c00"/>
+    </linearGradient>
+    <linearGradient id="copperGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8a441b"/>
+      <stop offset="50%" stop-color="#d48042"/>
+      <stop offset="100%" stop-color="#8a441b"/>
+    </linearGradient>
+    <linearGradient id="dieGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#173832"/>
+      <stop offset="50%" stop-color="#285934"/>
+      <stop offset="100%" stop-color="#143240"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Studio Backdrop -->
+  <rect width="1280" height="720" fill="#050907"/>
+  <rect width="1280" height="720" fill="url(#nvGlow)"/>
+  <rect width="1280" height="720" fill="url(#cyanGlow)"/>
+
+  <!-- Architectural Perspective Grid -->
+  <g stroke="#244019" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="560" x2="1280" y2="560"/>
+    <line x1="0" y1="612" x2="1280" y2="612"/>
+    <line x1="0" y1="670" x2="1280" y2="670"/>
+    <line x1="200" y1="510" x2="40" y2="720"/>
+    <line x1="440" y1="510" x2="340" y2="720"/>
+    <line x1="640" y1="510" x2="640" y2="720"/>
+    <line x1="840" y1="510" x2="940" y2="720"/>
+    <line x1="1080" y1="510" x2="1240" y2="720"/>
+  </g>
+
+  <!-- LEFT HERO: 48U VERA RUBIN NVL72 RACK (10 Upper + 9 Central Switches + 8 Lower + Emerald Spine & Dual Manifolds) -->
+  <g transform="translate(152, 134)">
+    <!-- Outer Cabinet Frame -->
+    <rect x="0" y="0" width="218" height="472" rx="6" fill="#0d1612" stroke="#76b900" stroke-width="2" stroke-opacity="0.72"/>
+    <!-- Vertical Cold Supply (Left) & Warm Return (Right) Manifolds -->
+    <rect x="-14" y="24" width="8" height="422" rx="4" fill="#22d3ee" opacity="0.86"/>
+    <rect x="224" y="24" width="8" height="422" rx="4" fill="#fb7185" opacity="0.86"/>
+    <!-- Top HVDC Power & BBU Shelf -->
+    <rect x="12" y="14" width="194" height="42" rx="3" fill="#1a2632" stroke="#38bdf8" stroke-opacity="0.45"/>
+    <rect x="22" y="29" width="174" height="4" rx="2" fill="#38bdf8" opacity="0.85"/>
+
+    <!-- 10 Upper 1U Compute Trays -->
+    <g fill="#16331c" stroke="#76b900" stroke-opacity="0.55" stroke-width="1">
+      <rect x="12" y="64" width="194" height="10" rx="2"/>
+      <rect x="12" y="77" width="194" height="10" rx="2"/>
+      <rect x="12" y="90" width="194" height="10" rx="2"/>
+      <!-- Pulled-out Hero 1U Blade Highlight -->
+      <rect x="22" y="103" width="206" height="12" rx="2" fill="#204a26" stroke="#d4ff66" stroke-width="1.6"/>
+      <rect x="12" y="118" width="194" height="10" rx="2"/>
+      <rect x="12" y="131" width="194" height="10" rx="2"/>
+      <rect x="12" y="144" width="194" height="10" rx="2"/>
+      <rect x="12" y="157" width="194" height="10" rx="2"/>
+      <rect x="12" y="170" width="194" height="10" rx="2"/>
+      <rect x="12" y="183" width="194" height="10" rx="2"/>
+    </g>
+
+    <!-- 9 Central NVLink 6 Switch Trays -->
+    <g fill="url(#amberGrad)" opacity="0.92">
+      <rect x="12" y="201" width="194" height="9" rx="2"/>
+      <rect x="12" y="213" width="194" height="9" rx="2"/>
+      <rect x="12" y="225" width="194" height="9" rx="2"/>
+      <rect x="12" y="237" width="194" height="9" rx="2"/>
+      <rect x="12" y="249" width="194" height="9" rx="2"/>
+      <rect x="12" y="261" width="194" height="9" rx="2"/>
+      <rect x="12" y="273" width="194" height="9" rx="2"/>
+      <rect x="12" y="285" width="194" height="9" rx="2"/>
+      <rect x="12" y="297" width="194" height="9" rx="2"/>
+    </g>
+
+    <!-- 8 Lower 1U Compute Trays -->
+    <g fill="#16331c" stroke="#76b900" stroke-opacity="0.55" stroke-width="1">
+      <rect x="12" y="314" width="194" height="10" rx="2"/>
+      <rect x="12" y="327" width="194" height="10" rx="2"/>
+      <rect x="12" y="340" width="194" height="10" rx="2"/>
+      <rect x="12" y="353" width="194" height="10" rx="2"/>
+      <rect x="12" y="366" width="194" height="10" rx="2"/>
+      <rect x="12" y="379" width="194" height="10" rx="2"/>
+      <rect x="12" y="392" width="194" height="10" rx="2"/>
+      <rect x="12" y="405" width="194" height="10" rx="2"/>
+    </g>
+
+    <!-- Bottom HVDC Power & BBU Shelf -->
+    <rect x="12" y="422" width="194" height="40" rx="3" fill="#1a2632" stroke="#38bdf8" stroke-opacity="0.45"/>
+    <rect x="22" y="438" width="174" height="4" rx="2" fill="#38bdf8" opacity="0.85"/>
+
+    <!-- Animated NVLink 6 Signal Arcs -->
+    <path d="M 228 110 C 266 145, 266 218, 228 248" fill="none" stroke="#a8e03a" stroke-width="2" stroke-dasharray="6 4"/>
+    <path d="M 228 362 C 264 335, 264 282, 228 260" fill="none" stroke="#a8e03a" stroke-width="2" stroke-dasharray="6 4"/>
+    <circle cx="255" cy="176" r="5" fill="#d4ff66"/>
+    <circle cx="254" cy="316" r="5" fill="#f59e0b"/>
+  </g>
+
+  <!-- RIGHT HERO: 1:2 VERA-RUBIN SUPERCHIP (EXPLODED GPU A + VERA CPU & SOCAMM + TWIN GPU B) -->
+  <g transform="translate(505, 165)">
+    <!-- Zoom Connector Line from Pulled-Out Blade -->
+    <path d="M -125 78 C -62 78, -42 150, 6 205" fill="none" stroke="#d4ff66" stroke-width="1.8" stroke-dasharray="5 5" opacity="0.72"/>
+
+    <!-- VR200 Superchip Carrier Board -->
+    <rect x="0" y="300" width="710" height="122" rx="10" fill="#072213" stroke="#76b900" stroke-width="1.6" stroke-opacity="0.72"/>
+    <!-- VRM Power Stages Row -->
+    <g fill="#273238" stroke="#9aa9b2" stroke-width="0.6">
+      <rect x="26" y="402" width="14" height="12" rx="2"/>
+      <rect x="52" y="402" width="14" height="12" rx="2"/>
+      <rect x="78" y="402" width="14" height="12" rx="2"/>
+      <rect x="104" y="402" width="14" height="12" rx="2"/>
+      <rect x="130" y="402" width="14" height="12" rx="2"/>
+      <rect x="552" y="402" width="14" height="12" rx="2"/>
+      <rect x="578" y="402" width="14" height="12" rx="2"/>
+      <rect x="604" y="402" width="14" height="12" rx="2"/>
+      <rect x="630" y="402" width="14" height="12" rx="2"/>
+      <rect x="656" y="402" width="14" height="12" rx="2"/>
+    </g>
+
+    <!-- Twin NVLink-C2C Trace Buses -->
+    <g fill="#f59e0b" opacity="0.88">
+      <rect x="244" y="346" width="38" height="5" rx="1"/>
+      <rect x="244" y="356" width="38" height="5" rx="1"/>
+      <rect x="244" y="366" width="38" height="5" rx="1"/>
+      <rect x="428" y="346" width="38" height="5" rx="1"/>
+      <rect x="428" y="356" width="38" height="5" rx="1"/>
+      <rect x="428" y="366" width="38" height="5" rx="1"/>
+    </g>
+
+    <!-- RUBIN GPU A (LEFT — EXPLODED COMPOSITE STACK) -->
+    <!-- Substrate & Interposer -->
+    <rect x="22" y="318" width="218" height="72" rx="6" fill="#0a2e1a" stroke="#9aa9b2" stroke-width="1.5"/>
+    <rect x="38" y="276" width="186" height="24" rx="4" fill="#1b2934" stroke="#64748b"/>
+
+    <!-- Dual 3nm N3P Compute Dies + NV-HBI Bridge + I/O Chiplets -->
+    <rect x="62" y="198" width="60" height="54" rx="3" fill="url(#dieGrad)" stroke="#a8e03a" stroke-width="1.5"/>
+    <rect x="140" y="198" width="60" height="54" rx="3" fill="url(#dieGrad)" stroke="#a8e03a" stroke-width="1.5"/>
+    <rect x="125" y="204" width="12" height="44" rx="2" fill="#76b900"/>
+    <rect x="66" y="256" width="52" height="12" rx="2" fill="#f59e0b"/>
+    <rect x="144" y="256" width="52" height="12" rx="2" fill="#f59e0b"/>
+
+    <!-- 8x 12-Hi Laminated HBM4 Stacks (Left & Right Flanking) -->
+    <g fill="#16465c" stroke="#22d3ee" stroke-width="1.2">
+      <rect x="30" y="148" width="24" height="46" rx="2"/>
+      <rect x="208" y="148" width="24" height="46" rx="2"/>
+    </g>
+    <g stroke="#22d3ee" stroke-width="1" opacity="0.8">
+      <line x1="30" y1="158" x2="54" y2="158"/><line x1="30" y1="168" x2="54" y2="168"/><line x1="30" y1="178" x2="54" y2="178"/>
+      <line x1="208" y1="158" x2="232" y2="158"/><line x1="208" y1="168" x2="232" y2="168"/><line x1="208" y1="178" x2="232" y2="178"/>
+    </g>
+
+    <!-- Machined Copper Micro-Channel Cold Plate (Exploded Top) -->
+    <rect x="28" y="72" width="206" height="44" rx="5" fill="url(#copperGrad)" stroke="#cbd5e1" stroke-width="3" opacity="0.90"/>
+    <rect x="68" y="44" width="12" height="28" rx="6" fill="#22d3ee"/>
+    <rect x="182" y="44" width="12" height="28" rx="6" fill="#fb7185"/>
+
+    <!-- CENTER: NVIDIA VERA 88C CPU + 4x SOCAMM MEMORY CARDS -->
+    <rect x="292" y="324" width="126" height="68" rx="6" fill="#8ea1ad" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="355" y="355" fill="#13221a" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="800" text-anchor="middle">VERA</text>
+    <text x="355" y="373" fill="#243a2e" font-family="ui-monospace, Menlo, monospace" font-size="10" font-weight="700" text-anchor="middle">88C · 176T</text>
+    <!-- Modular SOCAMM Memory Cards (North & South) -->
+    <g fill="#082c1c" stroke="#38bdf8" stroke-width="1.2">
+      <rect x="294" y="294" width="58" height="22" rx="3"/>
+      <rect x="358" y="294" width="58" height="22" rx="3"/>
+      <rect x="294" y="396" width="58" height="22" rx="3"/>
+      <rect x="358" y="396" width="58" height="22" rx="3"/>
+    </g>
+
+    <!-- RUBIN GPU B (RIGHT — ASSEMBLED IDENTICAL TWIN) -->
+    <rect x="470" y="318" width="218" height="72" rx="6" fill="#0a2e1a" stroke="#9aa9b2" stroke-width="1.5"/>
+    <rect x="480" y="324" width="198" height="58" rx="5" fill="url(#copperGrad)" stroke="#cbd5e1" stroke-width="2.5" opacity="0.92"/>
+    <rect x="520" y="298" width="11" height="26" rx="5" fill="#22d3ee"/>
+    <rect x="628" y="298" width="11" height="26" rx="5" fill="#fb7185"/>
+
+    <!-- Callout Pills -->
+    <g font-family="ui-monospace, Menlo, monospace" font-size="11" font-weight="700">
+      <rect x="46" y="10" width="170" height="24" rx="12" fill="#070d0a" stroke="#d48042" stroke-opacity="0.85"/>
+      <text x="131" y="26" fill="#edf6f0" text-anchor="middle">Copper Cold Plate</text>
+
+      <rect x="252" y="148" width="184" height="24" rx="12" fill="#070d0a" stroke="#22d3ee" stroke-opacity="0.85"/>
+      <text x="344" y="164" fill="#edf6f0" text-anchor="middle">8× 12-Hi HBM4 · 22 TB/s</text>
+
+      <rect x="262" y="208" width="186" height="24" rx="12" fill="#070d0a" stroke="#76b900" stroke-opacity="0.85"/>
+      <text x="355" y="224" fill="#edf6f0" text-anchor="middle">Dual 3nm N3P · 336B</text>
+
+      <rect x="498" y="254" width="164" height="24" rx="12" fill="#070d0a" stroke="#a8e03a" stroke-opacity="0.85"/>
+      <text x="580" y="270" fill="#edf6f0" text-anchor="middle">Rubin GPU B (Twin)</text>
+    </g>
+  </g>
+
+  <!-- Title Card Top Left -->
+  <rect x="44" y="34" width="486" height="86" rx="10" fill="#070d0a" fill-opacity="0.88" stroke="#76b900" stroke-opacity="0.48"/>
+  <rect x="44" y="34" width="4" height="86" rx="2" fill="#76b900"/>
+  <text x="64" y="60" fill="#a8e03a" font-family="ui-monospace, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="2">NVIDIA ARCHITECTURE ANATOMY</text>
+  <text x="64" y="86" fill="#edf6f0" font-family="ui-monospace, Menlo, monospace" font-size="22" font-weight="800">Vera Rubin NVL72</text>
+  <text x="64" y="108" fill="#8ea899" font-family="ui-monospace, Menlo, monospace" font-size="12">48U MGX v3 Rack · 1U Blades · 1:2 Twin Superchip</text>
+</svg>
